@@ -44,6 +44,16 @@
             color: #00ffff; font-size: 24px; z-index: 30;
             background: rgba(0,0,0,0.8); padding: 20px 40px;
             border-radius: 10px; border: 2px solid #00ffff;
+            text-align: center;
+        }
+        #loading .progress {
+            width: 200px; height: 4px;
+            background: #1a1a3a; margin-top: 10px;
+            border-radius: 2px; overflow: hidden;
+        }
+        #loading .progress-bar {
+            width: 0%; height: 100%;
+            background: #00ffff; transition: width 0.3s;
         }
 
         #dpad {
@@ -85,6 +95,7 @@
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
 </head>
 <body>
     <div id="ui">
@@ -93,7 +104,10 @@
         <span><span class="score-label">ОРАНЖЕВЫЙ</span><br><span id="p2Score">0</span></span>
     </div>
     <div id="message"></div>
-    <div id="loading">⏳ ЗАГРУЗКА...</div>
+    <div id="loading">
+        ⏳ ЗАГРУЗКА МОДЕЛИ...
+        <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+    </div>
 
     <div id="dpad">
         <div class="dbtn" id="btnUp">▲</div>
@@ -113,6 +127,7 @@
         let msgTimeout;
         let roundCount = 0;
         let gameInterval = null;
+        let modelLoaded = false;
 
         // ===== THREE.JS СЦЕНА =====
         const scene = new THREE.Scene();
@@ -163,7 +178,6 @@
         gridHelper.material.transparent = true;
         scene.add(gridHelper);
 
-        // Стены
         function createWall(w, h, d, x, z, rotY = 0) {
             const group = new THREE.Group();
             const wallMat = new THREE.MeshStandardMaterial({ 
@@ -218,7 +232,6 @@
             }
         ];
 
-        // Пулы объектов для следов
         const trailPool = [];
 
         function getTrailObject() {
@@ -245,7 +258,7 @@
             trailPool.push(obj);
         }
 
-        // ===== СОЗДАНИЕ ПРОСТЫХ БАЙКОВ =====
+        // ===== СОЗДАНИЕ ПРОСТЫХ БАЙКОВ (ЗАПАСНОЙ ВАРИАНТ) =====
         function createSimpleBike(color) {
             const group = new THREE.Group();
             
@@ -275,6 +288,92 @@
             group.add(cockpit);
 
             return group;
+        }
+
+        // ===== ЗАГРУЗКА FBX МОДЕЛИ =====
+        function loadModel() {
+            const loader = new THREE.FBXLoader();
+            const progressBar = document.getElementById('progressBar');
+            
+            loader.load(
+                'police_car.fbx',
+                (fbx) => {
+                    console.log('✅ Модель загружена!');
+                    modelLoaded = true;
+                    
+                    // Масштабируем модель
+                    fbx.scale.set(0.35, 0.35, 0.35);
+                    
+                    // Создаем копии для игроков
+                    const modelP1 = fbx.clone();
+                    const modelP2 = fbx.clone();
+                    
+                    // Меняем цвета (синий)
+                    modelP1.traverse((child) => {
+                        if (child.isMesh && child.material) {
+                            child.material.color.setHex(0x00ffff);
+                            child.material.emissive.setHex(0x00ffff);
+                            child.material.emissiveIntensity = 0.3;
+                        }
+                    });
+                    
+                    // Меняем цвета (оранжевый)
+                    modelP2.traverse((child) => {
+                        if (child.isMesh && child.material) {
+                            child.material.color.setHex(0xffaa00);
+                            child.material.emissive.setHex(0xffaa00);
+                            child.material.emissiveIntensity = 0.3;
+                        }
+                    });
+                    
+                    // Назначаем игрокам
+                    players[0].mesh = modelP1;
+                    players[1].mesh = modelP2;
+                    scene.add(modelP1);
+                    scene.add(modelP2);
+                    
+                    // Обновляем позиции
+                    updatePlayerPositions();
+                    
+                    // Скрываем загрузку и запускаем игру
+                    document.getElementById('loading').style.display = 'none';
+                    startGame();
+                },
+                (progress) => {
+                    const percent = Math.round((progress.loaded / progress.total) * 100);
+                    progressBar.style.width = percent + '%';
+                },
+                (error) => {
+                    console.warn('⚠️ Не удалось загрузить модель, используем простые байки:', error);
+                    createFallbackBikes();
+                }
+            );
+        }
+
+        function createFallbackBikes() {
+            players.forEach(p => {
+                const bike = createSimpleBike(p.color);
+                p.mesh = bike;
+                scene.add(bike);
+                const pos = gridToScene(p.x, p.y);
+                bike.position.set(pos.x, 0.2, pos.z);
+            });
+            document.getElementById('loading').style.display = 'none';
+            startGame();
+        }
+
+        function updatePlayerPositions() {
+            players.forEach((p) => {
+                if (p.mesh) {
+                    const pos = gridToScene(p.x, p.y);
+                    p.mesh.position.set(pos.x, 0.2, pos.z);
+                    
+                    if (p.dirX === 1) p.mesh.rotation.y = Math.PI / 2;
+                    else if (p.dirX === -1) p.mesh.rotation.y = -Math.PI / 2;
+                    else if (p.dirY === 1) p.mesh.rotation.y = 0;
+                    else if (p.dirY === -1) p.mesh.rotation.y = Math.PI;
+                }
+            });
         }
 
         // ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
@@ -396,7 +495,7 @@
         function updateGame() {
             if (!gameActive) return;
 
-            players.forEach((p, idx) => {
+            players.forEach((p) => {
                 if (!p.alive) return;
 
                 p.x += p.dirX;
@@ -444,7 +543,7 @@
         }
 
         function checkCollisions() {
-            players.forEach((p, idx) => {
+            players.forEach((p) => {
                 if (!p.alive) return;
                 
                 for (let i = 0; i < p.trail.length - 2; i++) {
@@ -535,6 +634,9 @@
             players[1].dirX = -1;
             players[1].dirY = 0;
 
+            // Обновляем позиции моделей
+            updatePlayerPositions();
+
             gameActive = true;
             roundCount++;
         }
@@ -622,31 +724,18 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // ===== ИНИЦИАЛИЗАЦИЯ =====
-        function initGame() {
-            // Создаем простые байки для обоих игроков
-            players.forEach(p => {
-                const bike = createSimpleBike(p.color);
-                p.mesh = bike;
-                scene.add(bike);
-                
-                const pos = gridToScene(p.x, p.y);
-                bike.position.set(pos.x, 0.2, pos.z);
-            });
-
-            gameActive = true;
-            document.getElementById('loading').style.display = 'none';
-            
-            // Запускаем игровой цикл
+        // ===== ЗАПУСК ИГРЫ =====
+        function startGame() {
             if (gameInterval) clearInterval(gameInterval);
             gameInterval = setInterval(updateGame, 50);
-            
-            console.log('🎮 TRON 3D Кибер Арена запущена!');
-            console.log('🎯 Управление: ↑↓←→ / WASD');
+            gameActive = true;
+            console.log('🎮 TRON 3D с моделью police_car.fbx!');
+            console.log('🚨 Управление: ↑↓←→ / WASD');
         }
 
-        // Запускаем игру
-        setTimeout(initGame, 500);
+        // ===== СТАРТ =====
+        // Пытаемся загрузить модель, если не получится - создаем простые байки
+        loadModel();
         animate();
     </script>
 </body>
