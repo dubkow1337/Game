@@ -1,66 +1,110 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TRON 3D: Кибер Арена</title>
+    <title>TRON 3D: Кибер Арена V2</title>
     <style>
+        * { margin: 0; padding: 0; }
         body { 
-            margin: 0; 
             overflow: hidden; 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Segoe UI', Arial, sans-serif;
             background: #050814;
             touch-action: none; 
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
         }
-        #ui { 
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            color: #ffffff; font-size: 24px; font-weight: bold; letter-spacing: 2px;
-            background: rgba(5, 8, 20, 0.75); padding: 10px 30px; border: 2px solid #00ffff;
-            border-radius: 20px; box-shadow: 0 0 15px rgba(0, 255, 255, 0.4); z-index: 10; 
-            text-align: center; min-width: 250px;
-        }
-        #p1Score { color: #00ffff; text-shadow: 0 0 10px #00ffff; }
-        #p2Score { color: #ffaa00; text-shadow: 0 0 10px #ffaa00; }
         
-        #message { 
-            position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%); 
-            color: #ff0055; font-size: 42px; font-weight: 900; letter-spacing: 3px;
-            text-shadow: 0 0 20px #ff0055; text-align: center; z-index: 10; pointer-events: none; 
-            font-style: italic;
+        #ui {
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+            color: #fff; font-size: 20px; font-weight: bold;
+            background: rgba(5, 8, 20, 0.85); padding: 8px 25px;
+            border: 2px solid #00ffff; border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            z-index: 10; text-align: center;
+            display: flex; align-items: center; gap: 20px;
+            backdrop-filter: blur(5px);
+        }
+        #p1Score { color: #00ffff; text-shadow: 0 0 15px #00ffff; font-size: 28px; }
+        #p2Score { color: #ffaa00; text-shadow: 0 0 15px #ffaa00; font-size: 28px; }
+        .score-label { opacity: 0.6; font-size: 14px; }
+        
+        #status {
+            position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
+            color: #fff; font-size: 16px; background: rgba(0,0,0,0.7);
+            padding: 5px 20px; border-radius: 10px; z-index: 10;
+            border: 1px solid rgba(255,255,255,0.1);
+            opacity: 0; transition: opacity 0.3s;
+        }
+        #status.show { opacity: 1; }
+
+        #message {
+            position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%);
+            color: #ff0055; font-size: 48px; font-weight: 900;
+            text-shadow: 0 0 30px #ff0055, 0 0 60px #ff0055;
+            text-align: center; z-index: 10; pointer-events: none;
+            opacity: 0; transition: opacity 0.5s;
+        }
+        #message.show { opacity: 1; }
+
+        #speed-indicator {
+            position: absolute; bottom: 100px; left: 20px;
+            color: #00ffff; font-size: 14px; z-index: 10;
+            background: rgba(0,0,0,0.6); padding: 8px 15px;
+            border-radius: 8px; border-left: 3px solid #00ffff;
         }
 
-        /* ВИРТУАЛЬНЫЙ ДЖОЙСТИК (D-PAD) */
         #dpad {
             position: absolute; bottom: 30px; right: 30px;
-            width: 160px; height: 160px; z-index: 20;
+            width: 180px; height: 180px; z-index: 20;
             display: none;
         }
         .dbtn {
-            position: absolute; width: 50px; height: 50px;
-            background: rgba(0, 255, 255, 0.15); border: 2px solid #00ffff;
-            border-radius: 12px; color: #00ffff; font-size: 24px; font-weight: bold;
+            position: absolute; width: 55px; height: 55px;
+            background: rgba(0, 255, 255, 0.1); border: 2px solid #00ffff;
+            border-radius: 12px; color: #00ffff; font-size: 26px;
             display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
-            cursor: pointer; transition: all 0.1s ease;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.15);
+            cursor: pointer; transition: all 0.05s;
+            touch-action: none;
         }
-        .dbtn:active { background: rgba(0, 255, 255, 0.5); box-shadow: 0 0 20px #00ffff; transform: scale(0.95); }
-        #btnUp { top: 0; left: 55px; }
-        #btnDown { bottom: 0; left: 55px; }
-        #btnLeft { top: 55px; left: 0; }
-        #btnRight { top: 55px; right: 0; }
+        .dbtn:active { 
+            background: rgba(0, 255, 255, 0.4); 
+            box-shadow: 0 0 30px #00ffff; 
+            transform: scale(0.92); 
+        }
+        #btnUp { top: 0; left: 62px; }
+        #btnDown { bottom: 0; left: 62px; }
+        #btnLeft { top: 62px; left: 0; }
+        #btnRight { top: 62px; right: 0; }
 
         @media (max-width: 1024px) {
             #dpad { display: block; }
+            #ui { font-size: 16px; padding: 6px 15px; gap: 10px; }
+        }
+        @media (max-width: 600px) {
+            #dpad { width: 140px; height: 140px; bottom: 20px; right: 20px; }
+            .dbtn { width: 42px; height: 42px; font-size: 20px; }
+            #btnUp { top: 0; left: 49px; }
+            #btnDown { bottom: 0; left: 49px; }
+            #btnLeft { top: 49px; left: 0; }
+            #btnRight { top: 49px; right: 0; }
+            #message { font-size: 28px; }
+            #speed-indicator { display: none; }
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
-    <div id="ui"><span id="p1Score">0</span> : <span id="p2Score">0</span></div>
+    <div id="ui">
+        <span><span class="score-label">СИНИЙ</span><br><span id="p1Score">0</span></span>
+        <span style="font-size:24px; opacity:0.3;">⚡</span>
+        <span><span class="score-label">ОРАНЖЕВЫЙ</span><br><span id="p2Score">0</span></span>
+    </div>
+    <div id="status">▶ ИГРА</div>
     <div id="message"></div>
+    <div id="speed-indicator">🚀 СКОРОСТЬ: <span id="speedValue">100</span>%</div>
 
     <div id="dpad">
         <div class="dbtn" id="btnUp">▲</div>
@@ -70,284 +114,689 @@
     </div>
 
     <script>
-        const WIDTH = 80;   
-        const HEIGHT = 48;  
+        // ===== КОНФИГУРАЦИЯ =====
+        const CONFIG = {
+            width: 80,
+            height: 48,
+            baseSpeed: 1,
+            maxSpeed: 2.2,
+            speedIncrement: 0.015,
+            trailLength: 40,
+            respawnDelay: 2000,
+            aiUpdateInterval: 80,
+            boostCooldown: 3000,
+            boostDuration: 1500,
+            boostMultiplier: 1.8
+        };
 
+        // ===== СОСТОЯНИЕ =====
         let gameActive = true;
-        let opponentType = 'ai'; 
+        let gameLoop;
         let msgTimeout;
+        let frameCount = 0;
+        const keys = { up: false, down: false, left: false, right: false };
+        let boostAvailable = { p1: true, p2: true };
+        let boostActive = { p1: false, p2: false };
+        let boostTimer = { p1: null, p2: null };
+        let speed = { p1: CONFIG.baseSpeed, p2: CONFIG.baseSpeed };
+        let roundCount = 0;
 
+        // ===== THREE.JS СЦЕНА =====
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x02040a);
-        scene.fog = new THREE.FogExp2(0x02040a, 0.015);
+        scene.fog = new THREE.FogExp2(0x02040a, 0.012);
 
-        const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 150);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.15);
-        scene.add(ambientLight);
+        // ===== ОСВЕЩЕНИЕ =====
+        const ambient = new THREE.AmbientLight(0x2233aa, 0.3);
+        scene.add(ambient);
 
-        const dirLight = new THREE.DirectionalLight(0x00ffff, 0.6);
-        dirLight.position.set(20, 40, 20);
-        scene.add(dirLight);
+        const mainLight = new THREE.DirectionalLight(0x00ffff, 0.8);
+        mainLight.position.set(30, 50, 30);
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.width = 1024;
+        mainLight.shadow.mapSize.height = 1024;
+        scene.add(mainLight);
 
-        const topLight = new THREE.PointLight(0xff00aa, 1.2, 100);
-        topLight.position.set(0, 30, 0);
-        scene.add(topLight);
+        const fillLight = new THREE.DirectionalLight(0xff00aa, 0.4);
+        fillLight.position.set(-30, 20, -30);
+        scene.add(fillLight);
 
-        const floorGeo = new THREE.PlaneGeometry(WIDTH, HEIGHT);
-        const floorMat = new THREE.MeshStandardMaterial({ color: 0x0a0f24, roughness: 0.2, metalness: 0.8 });
+        const neonLight = new THREE.PointLight(0x00ffff, 2, 60);
+        neonLight.position.set(0, 20, 0);
+        scene.add(neonLight);
+
+        // ===== АРЕНА =====
+        const floorGeo = new THREE.PlaneGeometry(CONFIG.width, CONFIG.height);
+        const floorMat = new THREE.MeshStandardMaterial({ 
+            color: 0x0a0f24, 
+            roughness: 0.3, 
+            metalness: 0.9,
+            emissive: 0x050810,
+            emissiveIntensity: 0.2
+        });
         const floor = new THREE.Mesh(floorGeo, floorMat);
         floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
         scene.add(floor);
 
-        const gridHelper = new THREE.GridHelper(WIDTH, WIDTH, 0xff00aa, 0x00ffff);
-        gridHelper.position.y = 0.01;
+        // Сетка
+        const gridHelper = new THREE.GridHelper(CONFIG.width, CONFIG.width, 0xff00aa, 0x00ffff);
+        gridHelper.position.y = 0.02;
         scene.add(gridHelper);
 
+        // Стены
         const wallGroup = new THREE.Group();
-        const wallHeight = 4;
-        const wallThick = 1.5;
-        const wallMat = new THREE.MeshStandardMaterial({ color: 0x111630, roughness: 0.4, metalness: 0.7 });
-        const neonWallMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+        const wallMat = new THREE.MeshStandardMaterial({ 
+            color: 0x111630, 
+            roughness: 0.3, 
+            metalness: 0.8,
+            emissive: 0x0a0f24,
+            emissiveIntensity: 0.3
+        });
+        const neonMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
 
-        function createArenaWall(w, h, d, x, z, rotateY = 0) {
+        function createWall(w, h, d, x, z, rotY = 0) {
             const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
             mesh.position.set(x, h/2, z);
-            mesh.rotation.y = rotateY;
+            mesh.rotation.y = rotY;
+            mesh.castShadow = true;
             wallGroup.add(mesh);
 
-            const neonLine = new THREE.Mesh(new THREE.BoxGeometry(w, 0.2, d + 0.1), neonWallMat);
-            neonLine.position.set(x, h, z);
-            neonLine.rotation.y = rotateY;
-            wallGroup.add(neonLine);
+            const line = new THREE.Mesh(new THREE.BoxGeometry(w, 0.15, d + 0.1), neonMat);
+            line.position.set(x, h, z);
+            line.rotation.y = rotY;
+            wallGroup.add(line);
+
+            const bottomLine = new THREE.Mesh(new THREE.BoxGeometry(w, 0.15, d + 0.1), neonMat);
+            bottomLine.position.set(x, 0.1, z);
+            bottomLine.rotation.y = rotY;
+            bottomLine.material = new THREE.MeshBasicMaterial({ color: 0xff00aa });
+            wallGroup.add(bottomLine);
         }
 
-        createArenaWall(WIDTH, wallHeight, wallThick, 0, HEIGHT/2);
-        createArenaWall(WIDTH, wallHeight, wallThick, 0, -HEIGHT/2);
-        createArenaWall(wallThick, wallHeight, HEIGHT, -WIDTH/2, 0);
-        createArenaWall(wallThick, wallHeight, HEIGHT, WIDTH/2, 0);
+        createWall(CONFIG.width, 4, 1.5, 0, CONFIG.height/2);
+        createWall(CONFIG.width, 4, 1.5, 0, -CONFIG.height/2);
+        createWall(1.5, 4, CONFIG.height, -CONFIG.width/2, 0);
+        createWall(1.5, 4, CONFIG.height, CONFIG.width/2, 0);
         scene.add(wallGroup);
 
+        // Трибуны
         const standsGroup = new THREE.Group();
-        for(let i = 0; i < 12; i++) {
-            const standGeo = new THREE.BoxGeometry(15, 8 + Math.random()*12, 15);
-            const standMat = new THREE.MeshStandardMaterial({ color: 0x080b18, roughness: 0.5 });
-            const stand = new THREE.Mesh(standGeo, standMat);
-            const angle = (i / 12) * Math.PI * 2;
-            stand.position.set(Math.cos(angle) * (WIDTH * 0.8), 0, Math.sin(angle) * (HEIGHT * 1.2));
+        for(let i = 0; i < 16; i++) {
+            const stand = new THREE.Mesh(
+                new THREE.BoxGeometry(12, 6 + Math.random()*10, 12),
+                new THREE.MeshStandardMaterial({ color: 0x080b18, roughness: 0.6, metalness: 0.3 })
+            );
+            const angle = (i / 16) * Math.PI * 2;
+            const radius = Math.max(CONFIG.width, CONFIG.height) * 0.7;
+            stand.position.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+            stand.castShadow = true;
             standsGroup.add(stand);
         }
         scene.add(standsGroup);
 
-        function createBikeModel(colorHex) {
+        // ===== ИГРОКИ =====
+        const trailPool = [];
+        const MAX_TRAIL_OBJECTS = 200;
+
+        function getTrailObject() {
+            if (trailPool.length > 0) {
+                const obj = trailPool.pop();
+                obj.visible = true;
+                return obj;
+            }
+            const geo = new THREE.BoxGeometry(0.85, 1.2, 0.85);
+            const mat = new THREE.MeshStandardMaterial({
+                metalness: 0.9,
+                roughness: 0.1,
+                transparent: true,
+                opacity: 0.8
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.castShadow = true;
+            scene.add(mesh);
+            return mesh;
+        }
+
+        function recycleTrailObject(obj) {
+            obj.visible = false;
+            trailPool.push(obj);
+        }
+
+        function createBike(color) {
             const group = new THREE.Group();
-            const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 1.8), new THREE.MeshStandardMaterial({ color: colorHex, metalness: 0.9, roughness: 0.1 }));
+            
+            const body = new THREE.Mesh(
+                new THREE.BoxGeometry(0.8, 0.5, 1.8),
+                new THREE.MeshStandardMaterial({ color, metalness: 0.9, roughness: 0.1, emissive: color, emissiveIntensity: 0.2 })
+            );
             body.position.y = 0.3;
+            body.castShadow = true;
             group.add(body);
-            const light = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.15, 0.2), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-            light.position.set(0, 0.4, 0.85);
+
+            const cockpit = new THREE.Mesh(
+                new THREE.SphereGeometry(0.35, 8, 8),
+                new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: color, emissiveIntensity: 0.5 })
+            );
+            cockpit.position.set(0, 0.6, 0.4);
+            group.add(cockpit);
+
+            const light = new THREE.Mesh(
+                new THREE.BoxGeometry(0.4, 0.1, 0.15),
+                new THREE.MeshBasicMaterial({ color: 0xffffff })
+            );
+            light.position.set(0, 0.4, 0.95);
             group.add(light);
+
+            // Трейлер
+            const trailLight = new THREE.Mesh(
+                new THREE.BoxGeometry(0.3, 0.3, 0.3),
+                new THREE.MeshBasicMaterial({ color })
+            );
+            trailLight.position.set(0, 0.15, -0.9);
+            group.add(trailLight);
+
             return group;
         }
 
         const players = [
-            { 
-                color: 0x00ffff, trailColor: 0x00ffff, name: 'Синий', 
-                x: 15, y: Math.floor(HEIGHT / 2), dirX: 1, dirY: 0, 
-                trail: [], alive: true, score: 0,
-                mesh: createBikeModel(0x00ffff), trailMeshes: []
+            {
+                color: 0x00ffff, trailColor: 0x00ffff, name: 'СИНИЙ',
+                x: 15, y: Math.floor(CONFIG.height/2), 
+                dirX: 1, dirY: 0,
+                trail: [], trailMeshes: [],
+                alive: true, score: 0,
+                mesh: createBike(0x00ffff),
+                nextDirX: 1, nextDirY: 0
             },
-            { 
-                color: 0xffaa00, trailColor: 0xffaa00, name: 'Оранжевый', 
-                x: WIDTH - 15, y: Math.floor(HEIGHT / 2), dirX: -1, dirY: 0, 
-                trail: [], alive: true, score: 0,
-                mesh: createBikeModel(0xffaa00), trailMeshes: []
+            {
+                color: 0xffaa00, trailColor: 0xffaa00, name: 'ОРАНЖЕВЫЙ',
+                x: CONFIG.width - 15, y: Math.floor(CONFIG.height/2),
+                dirX: -1, dirY: 0,
+                trail: [], trailMeshes: [],
+                alive: true, score: 0,
+                mesh: createBike(0xffaa00),
+                nextDirX: -1, nextDirY: 0
             }
         ];
 
         players.forEach(p => scene.add(p.mesh));
 
+        // ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
         function gridToScene(gx, gy) {
-            return { x: gx - WIDTH / 2, z: gy - HEIGHT / 2 };
+            return { x: gx - CONFIG.width/2, z: gy - CONFIG.height/2 };
         }
 
-        function showMessage(msg) {
+        function showMessage(text, color = '#ff0055', duration = 2500) {
             const div = document.getElementById('message');
-            div.innerText = msg;
+            div.textContent = text;
+            div.style.color = color;
+            div.style.textShadow = `0 0 30px ${color}, 0 0 60px ${color}`;
+            div.classList.add('show');
             clearTimeout(msgTimeout);
-            msgTimeout = setTimeout(() => div.innerText = '', 3000);
+            msgTimeout = setTimeout(() => div.classList.remove('show'), duration);
         }
 
-        function isSafeCell(x, y, trail, enemyTrail) {
-            if (x < 1 || x >= WIDTH - 1 || y < 1 || y >= HEIGHT - 1) return false;
-            for (let p of trail) if (Math.round(p.x) === Math.round(x) && Math.round(p.y) === Math.round(y)) return false;
-            for (let p of enemyTrail) if (Math.round(p.x) === Math.round(x) && Math.round(p.y) === Math.round(y)) return false;
+        function updateStatus(text, show = true) {
+            const el = document.getElementById('status');
+            el.textContent = text;
+            if(show) el.classList.add('show');
+            else el.classList.remove('show');
+        }
+
+        function isSafeCell(x, y, trail, enemyTrail, ignoreLast = 0) {
+            if (x < 1 || x >= CONFIG.width - 1 || y < 1 || y >= CONFIG.height - 1) return false;
+            
+            for (let i = 0; i < trail.length - ignoreLast; i++) {
+                const t = trail[i];
+                if (Math.round(t.x) === Math.round(x) && Math.round(t.y) === Math.round(y)) return false;
+            }
+            for (let t of enemyTrail) {
+                if (Math.round(t.x) === Math.round(x) && Math.round(t.y) === Math.round(y)) return false;
+            }
             return true;
         }
 
-        function aiMove() {
-            if (!players[1].alive || opponentType !== 'ai') return;
-            const p = players[1];
-            const enemy = players[0];
-            const dirs = [{ dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 }];
-            let moveScores = [];
-
-            for (const dir of dirs) {
-                let newX = p.x + dir.dx;
-                let newY = p.y + dir.dy;
-                if (!isSafeCell(newX, newY, p.trail, enemy.trail)) {
-                    moveScores.push({ dir: dir, score: -999 });
-                    continue;
-                }
-                let simX = newX, simY = newY, steps = 0;
-                let simTrail = [...p.trail, { x: Math.round(simX), y: Math.round(simY) }];
-                for (let step = 0; step < 30; step++) {
-                    let nextX = simX + dir.dx;
-                    let nextY = simY + dir.dy;
-                    if (isSafeCell(nextX, nextY, simTrail, enemy.trail)) {
-                        simX = nextX; simY = nextY;
-                        simTrail.push({ x: simX, y: simY });
-                        steps++;
-                    } else break;
-                }
-                const distToEnemy = Math.abs(simX - enemy.x) + Math.abs(simY - enemy.y);
-                moveScores.push({ dir: dir, score: steps * 10 + (30 - distToEnemy) });
-            }
-            moveScores.sort((a, b) => b.score - a.score);
-            if (moveScores[0] && moveScores[0].score > -999) {
-                p.dirX = moveScores[0].dir.dx;
-                p.dirY = moveScores[0].dir.dy;
-            }
+        function distance(x1, y1, x2, y2) {
+            return Math.abs(x1 - x2) + Math.abs(y1 - y2);
         }
 
+        // ===== AI =====
+        function aiMove() {
+            if (!gameActive || !players[1].alive) return;
+            
+            const p = players[1];
+            const enemy = players[0];
+            const dirs = [
+                { dx: 0, dy: -1 }, { dx: 0, dy: 1 },
+                { dx: -1, dy: 0 }, { dx: 1, dy: 0 }
+            ];
+            
+            // Проверяем возможность поворота
+            const possibleDirs = dirs.filter(d => {
+                const newX = p.x + d.dx;
+                const newY = p.y + d.dy;
+                return isSafeCell(newX, newY, p.trail, enemy.trail, 2);
+            });
+
+            if (possibleDirs.length === 0) {
+                // Если выхода нет - пытаемся ехать прямо
+                const straight = { dx: p.dirX, dy: p.dirY };
+                const newX = p.x + straight.dx;
+                const newY = p.y + straight.dy;
+                if (isSafeCell(newX, newY, p.trail, enemy.trail, 2)) {
+                    return;
+                }
+                // Иначе просто выбираем первое доступное
+                for (let d of dirs) {
+                    const nx = p.x + d.dx;
+                    const ny = p.y + d.dy;
+                    if (isSafeCell(nx, ny, p.trail, enemy.trail, 2)) {
+                        p.dirX = d.dx;
+                        p.dirY = d.dy;
+                        return;
+                    }
+                }
+                return;
+            }
+
+            // Оцениваем каждый возможный ход
+            let bestScore = -Infinity;
+            let bestDir = possibleDirs[0];
+
+            for (let d of possibleDirs) {
+                let score = 0;
+                let simX = p.x + d.dx;
+                let simY = p.y + d.dy;
+                
+                // Симуляция движения
+                let steps = 0;
+                const simTrail = [...p.trail, { x: simX, y: simY }];
+                let currentDir = { dx: d.dx, dy: d.dy };
+                let cx = simX, cy = simY;
+                
+                for (let i = 0; i < 15; i++) {
+                    const nextDirs = [
+                        { dx: currentDir.dx, dy: currentDir.dy },
+                        { dx: currentDir.dy, dy: currentDir.dx },
+                        { dx: -currentDir.dy, dy: -currentDir.dx }
+                    ];
+                    let moved = false;
+                    for (let nd of nextDirs) {
+                        const nx = cx + nd.dx;
+                        const ny = cy + nd.dy;
+                        if (isSafeCell(nx, ny, simTrail, enemy.trail, 0)) {
+                            cx = nx; cy = ny;
+                            simTrail.push({ x: cx, y: cy });
+                            currentDir = nd;
+                            steps++;
+                            moved = true;
+                            break;
+                        }
+                    }
+                    if (!moved) break;
+                }
+
+                // Оценка
+                const distToEnemy = distance(cx, cy, enemy.x, enemy.y);
+                const distToCenter = Math.abs(cx - CONFIG.width/2) + Math.abs(cy - CONFIG.height/2);
+                
+                // Награда за длину пути
+                score += steps * 20;
+                // Награда за приближение к врагу
+                score += (40 - distToEnemy) * 2;
+                // Штраф за центр (чтобы не крутиться на месте)
+                score -= distToCenter * 0.5;
+                // Бонус за разнообразие
+                if (d.dx !== p.dirX || d.dy !== p.dirY) score += 5;
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestDir = d;
+                }
+            }
+
+            p.dirX = bestDir.dx;
+            p.dirY = bestDir.dy;
+        }
+
+        // ===== ОБРАБОТКА БУСТА =====
+        function activateBoost(playerIdx) {
+            if (!boostAvailable[playerIdx === 0 ? 'p1' : 'p2']) return;
+            
+            const key = playerIdx === 0 ? 'p1' : 'p2';
+            boostAvailable[key] = false;
+            boostActive[key] = true;
+            speed[playerIdx === 0 ? 'p1' : 'p2'] = CONFIG.baseSpeed * CONFIG.boostMultiplier;
+            
+            // Визуальный эффект
+            const p = players[playerIdx];
+            p.mesh.children.forEach(child => {
+                if (child.material) {
+                    const origEmissive = child.material.emissive;
+                    child.material.emissiveIntensity = 1.5;
+                    setTimeout(() => { child.material.emissiveIntensity = 0.2; }, CONFIG.boostDuration);
+                }
+            });
+
+            setTimeout(() => {
+                boostActive[key] = false;
+                speed[playerIdx === 0 ? 'p1' : 'p2'] = CONFIG.baseSpeed;
+                // Перезарядка буста
+                setTimeout(() => { boostAvailable[key] = true; }, CONFIG.boostCooldown);
+            }, CONFIG.boostDuration);
+        }
+
+        // ===== ОСНОВНОЙ ИГРОВОЙ ЦИКЛ =====
         function updateGame() {
             if (!gameActive) return;
 
-            aiMove(); 
-
-            players.forEach((p) => {
-                if (!p.alive) return;
-
-                p.x += p.dirX;
-                p.y += p.dirY;
-                p.trail.push({ x: p.x, y: p.y });
-
-                const pos = gridToScene(p.x, p.y);
-                
-                const wallGeo = new THREE.BoxGeometry(0.9, 1.4, 0.9);
-                const wallMat = new THREE.MeshStandardMaterial({ 
-                    color: p.trailColor, 
-                    emissive: p.trailColor, 
-                    emissiveIntensity: 0.8,
-                    transparent: true,
-                    opacity: 0.7
-                });
-                const trailBlock = new THREE.Mesh(wallGeo, wallMat);
-                trailBlock.position.set(pos.x, 0.7, pos.z);
-                scene.add(trailBlock);
-                p.trailMeshes.push(trailBlock);
-
-                if (p.trail.length > 35) {
-                    p.trail.shift();
-                    const oldMesh = p.trailMeshes.shift();
-                    scene.remove(oldMesh);
+            frameCount++;
+            
+            // Обновляем скорость (постепенный разгон)
+            players.forEach((p, idx) => {
+                const key = idx === 0 ? 'p1' : 'p2';
+                if (!boostActive[key]) {
+                    speed[key] = Math.min(CONFIG.maxSpeed, speed[key] + CONFIG.speedIncrement);
                 }
-
-                p.mesh.position.set(pos.x, 0, pos.z);
-                
-                if (p.dirX === 1) p.mesh.rotation.y = Math.PI / 2;
-                if (p.dirX === -1) p.mesh.rotation.y = -Math.PI / 2;
-                if (p.dirY === 1) p.mesh.rotation.y = 0;
-                if (p.dirY === -1) p.mesh.rotation.y = Math.PI;
-
-                if (p.x < 1 || p.x >= WIDTH - 1 || p.y < 1 || p.y >= HEIGHT - 1) {
-                    p.alive = false;
-                }
-                
-                players.forEach(other => {
-                    other.trail.forEach((t, tIdx) => {
-                        if (other === p && tIdx >= p.trail.length - 2) return;
-                        if (Math.round(t.x) === Math.round(p.x) && Math.round(t.y) === Math.round(p.y)) {
-                            p.alive = false;
-                        }
-                    });
-                });
             });
 
-            const alive = players.filter(p => p.alive);
-            if (alive.length === 1) {
-                gameActive = false;
-                alive[0].score++;
-                document.getElementById('p1Score').innerText = players[0].score;
-                document.getElementById('p2Score').innerText = players[1].score;
-                showMessage("🏆 ПОБЕДА ИГРОКА: " + alive[0].name.toUpperCase());
-                setTimeout(resetGame, 2500);
-            } else if (alive.length === 0) {
-                gameActive = false;
-                showMessage('💥 ВЗАИМНОЕ УНИЧТОЖЕНИЕ!');
-                setTimeout(resetGame, 2500);
+            // Обновляем позиции
+            players.forEach((p, idx) => {
+                if (!p.alive) return;
+
+                const currentSpeed = speed[idx === 0 ? 'p1' : 'p2'];
+                const steps = Math.floor(currentSpeed);
+                const remainder = currentSpeed % 1;
+
+                for (let s = 0; s < steps; s++) {
+                    if (!p.alive) break;
+                    movePlayer(p, idx);
+                }
+                if (p.alive && remainder > 0 && Math.random() < remainder) {
+                    movePlayer(p, idx);
+                }
+            });
+
+            // Проверяем столкновения
+            checkCollisions();
+
+            // Обновляем UI
+            document.getElementById('p1Score').textContent = players[0].score;
+            document.getElementById('p2Score').textContent = players[1].score;
+            document.getElementById('speedValue').textContent = Math.round((speed.p1 / CONFIG.maxSpeed) * 100);
+
+            // AI ход
+            if (frameCount % Math.floor(CONFIG.aiUpdateInterval / 16) === 0) {
+                aiMove();
             }
         }
 
-        function resetGame() {
-            players.forEach(p => {
-                p.trail.forEach((t, i) => scene.remove(p.trailMeshes[i]));
-                p.trail = []; p.trailMeshes = []; p.alive = true;
+        function movePlayer(p, idx) {
+            p.x += p.dirX;
+            p.y += p.dirY;
+            
+            // Добавляем след
+            const trailPos = { x: p.x, y: p.y };
+            p.trail.push(trailPos);
+
+            // Создаем визуальный след
+            const pos = gridToScene(p.x, p.y);
+            const trailMesh = getTrailObject();
+            trailMesh.material.color.setHex(p.trailColor);
+            trailMesh.material.emissive.setHex(p.trailColor);
+            trailMesh.material.emissiveIntensity = 0.8;
+            trailMesh.position.set(pos.x, 0.6, pos.z);
+            trailMesh.scale.set(1, 1, 1);
+            p.trailMeshes.push(trailMesh);
+
+            // Удаляем старые следы
+            if (p.trail.length > CONFIG.trailLength) {
+                const oldTrail = p.trail.shift();
+                const oldMesh = p.trailMeshes.shift();
+                if (oldMesh) recycleTrailObject(oldMesh);
+            }
+
+            // Обновляем позицию модели
+            const currentPos = gridToScene(p.x, p.y);
+            p.mesh.position.set(currentPos.x, 0.3, currentPos.z);
+            
+            // Поворот модели
+            if (p.dirX === 1) p.mesh.rotation.y = Math.PI / 2;
+            else if (p.dirX === -1) p.mesh.rotation.y = -Math.PI / 2;
+            else if (p.dirY === 1) p.mesh.rotation.y = 0;
+            else if (p.dirY === -1) p.mesh.rotation.y = Math.PI;
+
+            // Проверка выхода за границы
+            if (p.x < 0.5 || p.x >= CONFIG.width - 0.5 || p.y < 0.5 || p.y >= CONFIG.height - 0.5) {
+                p.alive = false;
+            }
+        }
+
+        function checkCollisions() {
+            players.forEach((p, idx) => {
+                if (!p.alive) return;
+                
+                // Проверка столкновения со своим следом
+                for (let i = 0; i < p.trail.length - 2; i++) {
+                    const t = p.trail[i];
+                    if (Math.round(t.x) === Math.round(p.x) && Math.round(t.y) === Math.round(p.y)) {
+                        p.alive = false;
+                        break;
+                    }
+                }
             });
-            players[0].x = 15; players[0].y = Math.floor(HEIGHT / 2); players[0].dirX = 1; players[0].dirY = 0;
-            players[1].x = WIDTH - 15; players[1].y = Math.floor(HEIGHT / 2); players[1].dirX = -1; players[1].dirY = 0;
-            gameActive = true;
+
+            // Проверка столкновения с чужим следом
+            players.forEach((p, idx) => {
+                if (!p.alive) return;
+                const enemy = players[1 - idx];
+                for (let t of enemy.trail) {
+                    if (Math.round(t.x) === Math.round(p.x) && Math.round(t.y) === Math.round(p.y)) {
+                        p.alive = false;
+                        break;
+                    }
+                }
+            });
+
+            // Проверка лобового столкновения
+            if (players[0].alive && players[1].alive) {
+                if (Math.round(players[0].x) === Math.round(players[1].x) && 
+                    Math.round(players[0].y) === Math.round(players[1].y)) {
+                    players[0].alive = false;
+                    players[1].alive = false;
+                }
+            }
+
+            // Обработка завершения раунда
+            const alive = players.filter(p => p.alive);
+            if (alive.length === 0) {
+                endRound(null);
+            } else if (alive.length === 1) {
+                endRound(alive[0]);
+            }
         }
 
-        function changeDirection(turn) {
+        function endRound(winner) {
             if (!gameActive) return;
-            const p1 = players[0];
-            if (turn === 'up' && p1.dirY !== 1) { p1.dirX = 0; p1.dirY = -1; }
-            if (turn === 'down' && p1.dirY !== -1) { p1.dirX = 0; p1.dirY = 1; }
-            if (turn === 'left' && p1.dirX !== 1) { p1.dirX = -1; p1.dirY = 0; }
-            if (turn === 'right' && p1.dirX !== -1) { p1.dirX = 1; p1.dirY = 0; }
+            gameActive = false;
+            updateStatus('⏳ ПАУЗА', true);
+            
+            if (winner) {
+                winner.score++;
+                showMessage(`🏆 ${winner.name} ПОБЕДИЛ!`, winner.color === 0x00ffff ? '#00ffff' : '#ffaa00', 2500);
+                // Эффект победы
+                winner.mesh.children.forEach(child => {
+                    if (child.material) {
+                        child.material.emissiveIntensity = 2;
+                        setTimeout(() => { child.material.emissiveIntensity = 0.2; }, 1000);
+                    }
+                });
+            } else {
+                showMessage('💥 ВЗАИМНОЕ УНИЧТОЖЕНИЕ!', '#ff00ff', 2500);
+            }
+
+            setTimeout(() => {
+                resetRound();
+            }, CONFIG.respawnDelay);
         }
 
+        function resetRound() {
+            // Очищаем следы
+            players.forEach(p => {
+                p.trailMeshes.forEach(m => recycleTrailObject(m));
+                p.trail = [];
+                p.trailMeshes = [];
+                p.alive = true;
+                
+                // Сбрасываем скорость
+                const key = p === players[0] ? 'p1' : 'p2';
+                speed[key] = CONFIG.baseSpeed;
+                boostActive[key] = false;
+                boostAvailable[key] = true;
+                if (boostTimer[key]) {
+                    clearTimeout(boostTimer[key]);
+                    boostTimer[key] = null;
+                }
+            });
+
+            // Расставляем игроков
+            players[0].x = 15;
+            players[0].y = Math.floor(CONFIG.height/2);
+            players[0].dirX = 1;
+            players[0].dirY = 0;
+            
+            players[1].x = CONFIG.width - 15;
+            players[1].y = Math.floor(CONFIG.height/2);
+            players[1].dirX = -1;
+            players[1].dirY = 0;
+
+            gameActive = true;
+            roundCount++;
+            updateStatus(`▶ РАУНД ${roundCount}`, true);
+            
+            setTimeout(() => {
+                updateStatus('', false);
+            }, 1500);
+        }
+
+        // ===== УПРАВЛЕНИЕ =====
+        function changeDirection(player, turn) {
+            if (!gameActive) return;
+            const p = players[player];
+            if (!p.alive) return;
+
+            if (turn === 'up' && p.dirY !== 1) { p.dirX = 0; p.dirY = -1; }
+            else if (turn === 'down' && p.dirY !== -1) { p.dirX = 0; p.dirY = 1; }
+            else if (turn === 'left' && p.dirX !== 1) { p.dirX = -1; p.dirY = 0; }
+            else if (turn === 'right' && p.dirX !== -1) { p.dirX = 1; p.dirY = 0; }
+        }
+
+        // Клавиатура
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'w') changeDirection('up');
-            if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's') changeDirection('down');
-            if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') changeDirection('left');
-            if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') changeDirection('right');
+            const key = e.key;
+            if (key === 'ArrowUp' || key === 'w' || key === 'ц') changeDirection(0, 'up');
+            else if (key === 'ArrowDown' || key === 's' || key === 'ы') changeDirection(0, 'down');
+            else if (key === 'ArrowLeft' || key === 'a' || key === 'ф') changeDirection(0, 'left');
+            else if (key === 'ArrowRight' || key === 'd' || key === 'в') changeDirection(0, 'right');
+            else if (key === ' ') { e.preventDefault(); activateBoost(0); }
         });
 
-        document.getElementById('btnUp').addEventListener('touchstart', (e) => { e.preventDefault(); changeDirection('up'); }, {passive: false});
-        document.getElementById('btnDown').addEventListener('touchstart', (e) => { e.preventDefault(); changeDirection('down'); }, {passive: false});
-        document.getElementById('btnLeft').addEventListener('touchstart', (e) => { e.preventDefault(); changeDirection('left'); }, {passive: false});
-        document.getElementById('btnRight').addEventListener('touchstart', (e) => { e.preventDefault(); changeDirection('right'); }, {passive: false});
+        // Сенсорный D-Pad
+        document.getElementById('btnUp').addEventListener('touchstart', (e) => { e.preventDefault(); changeDirection(0, 'up'); });
+        document.getElementById('btnDown').addEventListener('touchstart', (e) => { e.preventDefault(); changeDirection(0, 'down'); });
+        document.getElementById('btnLeft').addEventListener('touchstart', (e) => { e.preventDefault(); changeDirection(0, 'left'); });
+        document.getElementById('btnRight').addEventListener('touchstart', (e) => { e.preventDefault(); changeDirection(0, 'right'); });
 
-        setInterval(updateGame, 75);
+        // Свайпы для мобильных
+        let touchStartX = 0, touchStartY = 0;
+        document.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+        });
 
+        document.addEventListener('touchmove', (e) => {
+            if (e.touches.length !== 1) return;
+            const touch = e.touches[0];
+            const dx = touch.clientX - touchStartX;
+            const dy = touch.clientY - touchStartY;
+            
+            if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+            
+            if (Math.abs(dx) > Math.abs(dy)) {
+                changeDirection(0, dx > 0 ? 'right' : 'left');
+            } else {
+                changeDirection(0, dy > 0 ? 'down' : 'up');
+            }
+            
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+        }, { passive: true });
+
+        // ===== АНИМАЦИЯ =====
         function animate() {
             requestAnimationFrame(animate);
+            
+            // Плавное движение камеры
+            if (players[0].alive) {
+                const p = players[0];
+                const targetX = (p.x - CONFIG.width/2) * 0.8;
+                const targetZ = (p.y - CONFIG.height/2) * 0.8;
+                
+                camera.position.x += (targetX - camera.position.x) * 0.08;
+                camera.position.y += (12 - camera.position.y) * 0.05;
+                camera.position.z += (targetZ - camera.position.z) * 0.08;
+                
+                camera.lookAt(
+                    (p.x - CONFIG.width/2) * 0.3,
+                    0.5,
+                    (p.y - CONFIG.height/2) * 0.3
+                );
+            }
 
-            const p1Pos = players[0].mesh.position;
-            const targetCamX = p1Pos.x - players[0].dirX * 14;
-            const targetCamZ = p1Pos.z - players[0].dirY * 14;
-            
-            camera.position.x += (targetCamX - camera.position.x) * 0.1;
-            camera.position.y += (9 - camera.position.y) * 0.1;
-            camera.position.z += (targetCamZ - camera.position.z) * 0.1;
-            
-            camera.lookAt(p1Pos.x + players[0].dirX * 4, 1, p1Pos.z + players[0].dirY * 4);
+            // Анимация неонового света
+            neonLight.intensity = 1.5 + Math.sin(Date.now() * 0.003) * 0.5;
 
             renderer.render(scene, camera);
         }
 
+        // ===== РАЗМЕР ОКНА =====
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
+        // ===== ЗАПУСК =====
+        updateStatus('▶ ИГРА', true);
+        setTimeout(() => updateStatus('', false), 2000);
+        
+        // Основной цикл игры
+        setInterval(updateGame, 16);
         animate();
+
+        // Дополнительный буст по пробелу для мобильных (двойной тап)
+        let lastTap = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTap < 300) {
+                activateBoost(0);
+            }
+            lastTap = now;
+        });
+
+        console.log('🎮 TRON 3D Кибер Арена V2 загружена!');
+        console.log('🎯 Управление: WASD/Стрелки | ПРОБЕЛ - буст');
+        console.log('📱 На мобильных: D-Pad + двойной тап для буста');
     </script>
 </body>
 </html>
