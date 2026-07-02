@@ -2,30 +2,39 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TRON 3D ИГРА</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Courier New', monospace; background: #03050a; }
-        #ui { position: absolute; top: 20px; left: 20px; color: #00ffff; font-size: 24px; font-weight: bold; text-shadow: 0 0 10px #00ffff; z-index: 10; }
-        #controls { position: absolute; bottom: 20px; left: 20px; color: #ffffff; font-size: 14px; opacity: 0.7; z-index: 10; }
-        #message { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ff0055; font-size: 48px; font-weight: bold; text-shadow: 0 0 15px #ff0055; text-align: center; z-index: 10; pointer-events: none; }
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: 'Courier New', monospace; 
+            background: #03050a;
+            /* Отключаем стандартные жесты браузера (скролл, зум), чтобы они не мешали играть */
+            touch-action: none; 
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        #ui { position: absolute; top: 20px; left: 20px; color: #00ffff; font-size: 20px; font-weight: bold; text-shadow: 0 0 10px #00ffff; z-index: 10; }
+        #controls { position: absolute; bottom: 20px; left: 20px; color: #ffffff; font-size: 12px; opacity: 0.7; z-index: 10; }
+        #message { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ff0055; font-size: 36px; font-weight: bold; text-shadow: 0 0 15px #ff0055; text-align: center; z-index: 10; pointer-events: none; }
     </style>
-    <!-- Подключаем Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
     <div id="ui">СИНrecord: <span id="p1Score">0</span> | ОРАНЖ: <span id="p2Score">0</span></div>
     <div id="message"></div>
-    <div id="controls">Игрок 1 (Синий): Стрелки<br>Игрок 2 (Бот/Оранжевый): Авто-ИИ</div>
+    <div id="controls">ПК: Стрелки клавиатуры<br>Смартфон: Свайпы по экрану</div>
 
     <script>
         // === КОНСТАНТЫ ИЗ ТВОЕГО КОДА ===
         const WIDTH = 80;   
         const HEIGHT = 48;  
-        const CELL_SIZE = 1; // В 3D масштабируем в единицы сцены
+        const CELL_SIZE = 1; 
 
         let gameActive = true;
-        let opponentType = 'ai'; // Режим против ИИ из твоего файла ui.js
+        let opponentType = 'ai'; 
         let msgTimeout;
 
         // === 1. ИНИЦИАЛИЗАЦИЯ THREE.JS ===
@@ -37,26 +46,24 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // Освещение (Неоновый Tron-стиль)
+        // Освещение
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
         scene.add(ambientLight);
         const dirLight = new THREE.DirectionalLight(0x00ffff, 0.8);
         dirLight.position.set(0, 50, 0);
         scene.add(dirLight);
 
-        // === 2. СОЗДАНИЕ 3D СЕТКИ (АРЕНЫ) ===
+        // === 2. СОЗДАНИЕ СЕТКИ ===
         const gridHelper = new THREE.GridHelper(WIDTH, WIDTH, 0x0f3f3a, 0x0f3f3a);
-        gridHelper.position.set(0, 0, 0);
         scene.add(gridHelper);
 
-        // Границы арены (стены)
         const wallMat = new THREE.MeshBasicMaterial({ color: 0x0f3f3a, wireframe: true });
         const wallGeo = new THREE.BoxGeometry(WIDTH, 2, HEIGHT);
         const arenaEdges = new THREE.BoxHelper(new THREE.Mesh(wallGeo), 0x00ffff);
         arenaEdges.position.y = 1;
         scene.add(arenaEdges);
 
-        // === 3. ДАННЫЕ ИГРОКОВ И ИХ 3D МОДЕЛИ ===
+        // === 3. ИГРОКИ И МОДЕЛИ ===
         const players = [
             { 
                 color: 0x00ffff, trailColor: 0x0066aa, name: 'Синий', 
@@ -74,18 +81,13 @@
             }
         ];
 
-        // Добавляем мотоциклы (конусы) на сцену
         players.forEach(p => {
-            p.mesh.rotation.x = Math.PI / 2; // Кладем горизонтально
+            p.mesh.rotation.x = Math.PI / 2; 
             scene.add(p.mesh);
         });
 
-        // Функция перевода координат сетки в 3D координаты сцены
         function gridToScene(gx, gy) {
-            return {
-                x: gx - WIDTH / 2,
-                z: gy - HEIGHT / 2
-            };
+            return { x: gx - WIDTH / 2, z: gy - HEIGHT / 2 };
         }
 
         function showMessage(msg) {
@@ -95,7 +97,7 @@
             msgTimeout = setTimeout(() => div.innerText = '', 3000);
         }
 
-        // === 4. ИИ ИЗ ТВОЕГО ФАЙЛА ai.js ===
+        // === 4. ИИ (ТВОЙ АЛГОРИТМ) ===
         function isSafeCell(x, y, trail, enemyTrail) {
             if (x < 1 || x >= WIDTH - 1 || y < 1 || y >= HEIGHT - 1) return false;
             for (let p of trail) if (Math.round(p.x) === Math.round(x) && Math.round(p.y) === Math.round(y)) return false;
@@ -117,7 +119,6 @@
                     moveScores.push({ dir: dir, score: -999 });
                     continue;
                 }
-                // Твоя симуляция на 30 шагов
                 let simX = newX, simY = newY, steps = 0;
                 let simTrail = [...p.trail, { x: Math.round(simX), y: Math.round(simY) }];
                 for (let step = 0; step < 30; step++) {
@@ -139,21 +140,19 @@
             }
         }
 
-        // === 5. ИГРОВОЙ ЦИКЛ ОБНОВЛЕНИЯ ЛОГИКИ ===
+        // === 5. ИГРОВОЙ ЦИКЛ ===
         function updateGame() {
             if (!gameActive) return;
 
-            aiMove(); // Вызов твоего ИИ
+            aiMove(); 
 
             players.forEach((p, idx) => {
                 if (!p.alive) return;
 
-                // Движение
                 p.x += p.dirX;
                 p.y += p.dirY;
                 p.trail.push({ x: p.x, y: p.y });
 
-                // Строим 3D Стену (След) вместо рисования линий в 2D
                 const pos = gridToScene(p.x, p.y);
                 const wallGeo = new THREE.BoxGeometry(0.8, 1, 0.8);
                 const wallMat = new THREE.MeshStandardMaterial({ color: p.trailColor, emissive: p.trailColor, emissiveIntensity: 0.5 });
@@ -162,31 +161,24 @@
                 scene.add(trailBlock);
                 p.trailMeshes.push(trailBlock);
 
-                // Ограничение длины следа из твоего файла render.js (TRAIL_LENGTH = 30)
                 if (p.trail.length > 30) {
                     p.trail.shift();
                     const oldMesh = p.trailMeshes.shift();
                     scene.remove(oldMesh);
                 }
 
-                // Обновляем позицию 3D модельки мотоцикла
                 p.mesh.position.set(pos.x, 0.5, pos.z);
                 
-                // Поворот модельки по направлению движения
                 if (p.dirX === 1) p.mesh.rotation.z = -Math.PI / 2;
                 if (p.dirX === -1) p.mesh.rotation.z = Math.PI / 2;
                 if (p.dirY === 1) p.mesh.rotation.z = 0;
                 if (p.dirY === -1) p.mesh.rotation.z = Math.PI;
 
-                // --- ПРОВЕРКА СТОЛКНОВЕНИЙ (Твой алгоритм) ---
-                // Границы
                 if (p.x < 0 || p.x >= WIDTH || p.y < 0 || p.y >= HEIGHT) {
                     p.alive = false;
                 }
-                // Столкновение со своими следами и чужими
                 players.forEach(other => {
                     other.trail.forEach((t, tIdx) => {
-                        // Не проверяем самую последнюю точку, чтобы не врезаться в себя
                         if (other === p && tIdx >= p.trail.length - 2) return;
                         if (Math.round(t.x) === Math.round(p.x) && Math.round(t.y) === Math.round(p.y)) {
                             p.alive = false;
@@ -195,7 +187,6 @@
                 });
             });
 
-            // Определение победителя
             const alive = players.filter(p => p.alive);
             if (alive.length === 1) {
                 gameActive = false;
@@ -211,7 +202,6 @@
             }
         }
 
-        // === СБРОС ИГРЫ ===
         function resetGame() {
             players.forEach(p => {
                 p.trail.forEach((t, i) => scene.remove(p.trailMeshes[i]));
@@ -219,38 +209,73 @@
                 p.trailMeshes = [];
                 p.alive = true;
             });
-            
             players[0].x = 10; players[0].y = Math.floor(HEIGHT / 2);
             players[0].dirX = 1; players[0].dirY = 0;
-            
             players[1].x = WIDTH - 10; players[1].y = Math.floor(HEIGHT / 2);
             players[1].dirX = -1; players[1].dirY = 0;
-            
             gameActive = true;
         }
 
-        // === 6. УПРАВЛЕНИЕ КЛАВИАТУРОЙ ===
-        document.addEventListener('keydown', (e) => {
+        // === 6. ФУНКЦИЯ СМЕНЫ НАПРАВЛЕНИЯ ===
+        function changeDirection(turn) {
             if (!gameActive) return;
             const p1 = players[0];
-            if (e.key === 'ArrowUp' && p1.dirY !== 1) { p1.dirX = 0; p1.dirY = -1; }
-            if (e.key === 'ArrowDown' && p1.dirY !== -1) { p1.dirX = 0; p1.dirY = 1; }
-            if (e.key === 'ArrowLeft' && p1.dirX !== 1) { p1.dirX = -1; p1.dirY = 0; }
-            if (e.key === 'ArrowRight' && p1.dirX !== -1) { p1.dirX = 1; p1.dirY = 0; }
+            if (turn === 'up' && p1.dirY !== 1) { p1.dirX = 0; p1.dirY = -1; }
+            if (turn === 'down' && p1.dirY !== -1) { p1.dirX = 0; p1.dirY = 1; }
+            if (turn === 'left' && p1.dirX !== 1) { p1.dirX = -1; p1.dirY = 0; }
+            if (turn === 'right' && p1.dirX !== -1) { p1.dirX = 1; p1.dirY = 0; }
+        }
+
+        // Управление клавиатурой (ПК)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') changeDirection('up');
+            if (e.key === 'ArrowDown') changeDirection('down');
+            if (e.key === 'ArrowLeft') changeDirection('left');
+            if (e.key === 'ArrowRight') changeDirection('right');
         });
 
-        // Таймер для логики игры (MOVE_INTERVAL = 70мс из твоего game.js)
+        // === МОБИЛЬНОЕ УПРАВЛЕНИЕ (СВАЙПЫ) ===
+        let touchStartX = 0;
+        let touchStartY = 0;
+        const minSwipeDistance = 30; // Минимальная длина свайпа в пикселях, чтобы избежать случайных нажатий
+
+        window.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+
+        window.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+
+            const diffX = touchEndX - touchStartX;
+            const diffY = touchEndY - touchStartY;
+
+            // Проверяем, какой свайп был длиннее: горизонтальный или вертикальный
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                // Горизонтальный свайп
+                if (Math.abs(diffX) > minSwipeDistance) {
+                    if (diffX > 0) changeDirection('right');
+                    else changeDirection('left');
+                }
+            } else {
+                // Вертикальный свайп
+                if (Math.abs(diffY) > minSwipeDistance) {
+                    if (diffY > 0) changeDirection('down');
+                    else changeDirection('up');
+                }
+            }
+        }, { passive: true });
+
+
         setInterval(updateGame, 70);
 
-        // === 7. АНИМАЦИЯ И СЛЕДОВАНИЕ КАМЕРЫ ===
+        // === 7. АНИМАЦИЯ И КАМЕРА ===
         function animate() {
             requestAnimationFrame(animate);
-
-            // Камера плавно летает над игроком 1 (Синим), создавая эффект присутствия
             const p1Pos = players[0].mesh.position;
             camera.position.set(p1Pos.x - players[0].dirX * 15, 12, p1Pos.z - players[0].dirY * 15);
             camera.lookAt(p1Pos.x + players[0].dirX * 5, 0, p1Pos.z + players[0].dirY * 5);
-
             renderer.render(scene, camera);
         }
 
