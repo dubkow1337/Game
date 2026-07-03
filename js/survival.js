@@ -2,4 +2,4 @@
 const SurvivalMode = {
     currentWave: 0,
     start() {}
-};
+}; 
