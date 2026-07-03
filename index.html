@@ -3,23 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TRON 3D: Кибер Арена</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>TRON 3D: Cyber Arena Elite</title>
+    <style>
+        body { 
+            margin: 0; overflow: hidden; 
+            font-family: 'Segoe UI', sans-serif; background: #010206;
+            touch-action: none; -webkit-user-select: none; user-select: none;
+        }
+        #ui { 
+            position: absolute; top: 25px; left: 50%; transform: translateX(-50%);
+            color: #fff; font-size: 26px; font-weight: 800; letter-spacing: 4px;
+            background: rgba(2, 4, 12, 0.85); padding: 12px 40px; 
+            border-radius: 30px; box-shadow: 0 0 30px rgba(0, 255, 255, 0.2); z-index: 10; 
+            text-align: center; border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+        #p1Score { color: #00ffff; text-shadow: 0 0 12px #00ffff; }
+        #p2Score { color: #ff5500; text-shadow: 0 0 12px #ff5500; }
+        #message { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            color: #ff0055; font-size: 48px; font-weight: 900; letter-spacing: 2px;
+            text-shadow: 0 0 25px #ff0055; text-align: center; z-index: 10; pointer-events: none; 
+        }
+        /* Удобный наэкранный D-PAD */
+        #dpad { position: absolute; bottom: 40px; right: 40px; width: 160px; height: 160px; z-index: 20; display: none; }
+        .dbtn {
+            position: absolute; width: 50px; height: 50px;
+            background: rgba(0, 255, 255, 0.08); border: 2px solid #00ffff;
+            border-radius: 15px; color: #00ffff; font-size: 22px; display: flex;
+            align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0,255,255,0.1);
+        }
+        .dbtn:active { background: rgba(0, 255, 255, 0.4); box-shadow: 0 0 25px #00ffff; }
+        #btnUp { top: 0; left: 55px; } #btnDown { bottom: 0; left: 55px; }
+        #btnLeft { top: 55px; left: 0; } #btnRight { top: 55px; right: 0; }
+        @media (max-width: 1024px) { #dpad { display: block; } }
+    </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
-    <!-- ИНТЕРФЕЙС -->
-    <div id="ui">
-        <span><span class="score-label">СИНИЙ</span><br><span id="p1Score">0</span></span>
-        <span class="vs">⚡</span>
-        <span><span class="score-label">ОРАНЖЕВЫЙ</span><br><span id="p2Score">0</span></span>
-    </div>
-
+    <div id="ui"><span id="p1Score">0</span> : <span id="p2Score">0</span></div>
     <div id="message"></div>
-    <div id="loading">⚡ ЗАГРУЗКА АРЕНЫ<div class="spinner"></div></div>
-    <div id="info">▼ TRON 3D // КИБЕР АРЕНА</div>
 
-    <!-- D-PAD -->
     <div id="dpad">
         <div class="dbtn" id="btnUp">▲</div>
         <div class="dbtn" id="btnLeft">◀</div>
@@ -27,14 +50,285 @@
         <div class="dbtn" id="btnDown">▼</div>
     </div>
 
-    <!-- СКРИПТЫ -->
-    <script src="js/utils.js"></script>
-    <script src="js/sounds.js"></script>
-    <script src="js/player.js"></script>
-    <script src="js/ai.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/render.js"></script>
-    <script src="js/game.js"></script>
-    <script src="js/main.js"></script>
+    <script>
+        // Размерности сетки под соотношение сторон картинки
+        const WIDTH = 80;   
+        const HEIGHT = 46;  
+
+        let gameActive = true;
+        let opponentType = 'ai'; 
+        let msgTimeout;
+
+        // СЦЕНА И ТУМАН ГЛУБИНЫ ГОРОДА
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x01030a);
+        scene.fog = new THREE.FogExp2(0x01030a, 0.012);
+
+        // Камера в фиксированном изометрическом ракурсе, как на картинке
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 52, 48); 
+        camera.lookAt(0, -2, -2);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // СВЕЧЕНИЕ СТАДИОНА
+        scene.add(new THREE.AmbientLight(0x0a1530, 0.6));
+        const blueLight = new THREE.PointLight(0x00ffff, 2, 60); blueLight.position.set(-20, 10, 0); scene.add(blueLight);
+        const orangeLight = new THREE.PointLight(0xff4400, 2, 60); orangeLight.position.set(20, 10, 0); scene.add(orangeLight);
+
+        // === СОЗДАНИЕ КИБЕР-ГОРОДА НА ЗАДНЕМ ПЛАНЕ ===
+        const cityGroup = new THREE.Group();
+        for(let i=0; i<75; i++) {
+            const h = 15 + Math.random() * 45;
+            const w = 6 + Math.random() * 10;
+            const d = 6 + Math.random() * 10;
+            
+            // Чёрные матовые здания с неоновыми ребрами
+            const buildGeo = new THREE.BoxGeometry(w, h, d);
+            const buildMat = new THREE.MeshStandardMaterial({ color: 0x03050d, roughness: 0.7 });
+            const building = new THREE.Mesh(buildGeo, buildMat);
+            
+            // Раскидываем здания глубоко внизу и вокруг арены
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 65 + Math.random() * 70;
+            building.position.set(Math.cos(angle)*radius, -h/2 - 5, Math.sin(angle)*radius);
+            cityGroup.add(building);
+
+            // Неоновые линии на небоскребах
+            const edgeHelper = new THREE.BoxHelper(building, Math.random() > 0.5 ? 0x00ffff : 0xff00aa);
+            cityGroup.add(edgeHelper);
+        }
+        scene.add(cityGroup);
+
+        // === ПАРЯЩАЯ АРЕНА (КАК НА КАРТИНКЕ 1782981130590.png) ===
+        const arenaGroup = new THREE.Group();
+
+        // Главная подложка поля
+        const floorGeo = new THREE.BoxGeometry(WIDTH, 0.5, HEIGHT);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x040814, roughness: 0.3, metalness: 0.8 });
+        const arenaFloor = new THREE.Mesh(floorGeo, floorMat);
+        arenaFloor.position.y = -0.25;
+        arenaGroup.add(arenaFloor);
+
+        // Сетка кибер-разметки (Бирюзовая слева, Оранжевая справа)
+        const gridLeft = new THREE.GridHelper(WIDTH/2, WIDTH/2, 0x00ffff, 0x004455);
+        gridLeft.position.set(-WIDTH/4, 0.02, 0);
+        arenaGroup.add(gridLeft);
+
+        const gridRight = new THREE.GridHelper(WIDTH/2, WIDTH/2, 0xff5500, 0x551100);
+        gridRight.position.set(WIDTH/4, 0.02, 0);
+        arenaGroup.add(gridRight);
+
+        // Закругленный неоновый барьер по периметру
+        function createNeonFrame() {
+            const points = [];
+            const r = 4; // Радиус закругления углов
+            const w = WIDTH/2; const h = HEIGHT/2;
+            
+            // Строим контур с закругленными углами
+            for(let theta=0; theta<=Math.PI/2; theta+=0.1) points.push(new THREE.Vector3(w-r + Math.cos(theta)*r, 0.5, h-r + Math.sin(theta)*r));
+            for(let theta=Math.PI/2; theta<=Math.PI; theta+=0.1) points.push(new THREE.Vector3(-w+r + Math.cos(theta)*r, 0.5, h-r + Math.sin(theta)*r));
+            for(let theta=Math.PI; theta<=3*Math.PI/2; theta+=0.1) points.push(new THREE.Vector3(-w+r + Math.cos(theta)*r, 0.5, -h+r + Math.sin(theta)*r));
+            for(let theta=3*Math.PI/2; theta<=Math.PI*2; theta+=0.1) points.push(new THREE.Vector3(w-r + Math.cos(theta)*r, 0.5, -h+r + Math.sin(theta)*r));
+            points.push(points[0]);
+
+            const curve = new THREE.CatmullRomCurve3(points);
+            const tubeGeo = new THREE.TubeGeometry(curve, 120, 0.4, 8, true);
+            
+            // Двухцветный градиент заменяем двумя половинками трубки для простоты
+            const leftMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+            const rightMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
+            
+            const tubeLeft = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.slice(30, 90)), 60, 0.5, 8, false), leftMat);
+            const tubeRight = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([...points.slice(90), ...points.slice(0, 30)]), 60, 0.5, 8, false), rightMat);
+            
+            arenaGroup.add(tubeLeft, tubeRight);
+        }
+        createNeonFrame();
+        scene.add(arenaGroup);
+
+        // === ИГРОКИ (КОНУСЫ С КОМПРЕССИОННЫМИ КОЛЬЦАМИ) ===
+        function createConeBike(colorHex) {
+            const group = new THREE.Group();
+            // Лежачий светящийся конус, устремленный вперед
+            const coneGeo = new THREE.ConeGeometry(0.5, 1.6, 16);
+            const coneMat = new THREE.MeshStandardMaterial({ 
+                color: colorHex, emissive: colorHex, emissiveIntensity: 0.3, metalness: 0.5, roughness: 0.2 
+            });
+            const cone = new THREE.Mesh(coneGeo, coneMat);
+            cone.rotation.x = Math.PI / 2; // Кладем горизонтально направлением вперед
+            group.add(cone);
+            return group;
+        }
+
+        const players = [
+            { 
+                color: 0x00ffff, trailColor: 0x00ffff, name: 'Синий', 
+                x: 15, y: Math.floor(HEIGHT / 2), dirX: 1, dirY: 0, 
+                trail: [], alive: true, score: 0,
+                mesh: createConeBike(0x00ffff), trailMeshes: []
+            },
+            { 
+                color: 0xff4400, trailColor: 0xff4400, name: 'Оранжевый', 
+                x: WIDTH - 15, y: Math.floor(HEIGHT / 2), dirX: -1, dirY: 0, 
+                trail: [], alive: true, score: 0,
+                mesh: createConeBike(0xff4400), trailMeshes: []
+            }
+        ];
+
+        players.forEach(p => scene.add(p.mesh));
+
+        function gridToScene(gx, gy) {
+            return { x: gx - WIDTH / 2, z: gy - HEIGHT / 2 };
+        }
+
+        function showMessage(msg) {
+            const div = document.getElementById('message'); div.innerText = msg;
+            clearTimeout(msgTimeout); msgTimeout = setTimeout(() => div.innerText = '', 3000);
+        }
+
+        // === ИИ АЛГОРИТМ СОХРАНЕН ===
+        function isSafeCell(x, y, trail, enemyTrail) {
+            if (x < 2 || x >= WIDTH - 2 || y < 2 || y >= HEIGHT - 2) return false;
+            for (let p of trail) if (Math.round(p.x) === Math.round(x) && Math.round(p.y) === Math.round(y)) return false;
+            for (let p of enemyTrail) if (Math.round(p.x) === Math.round(x) && Math.round(p.y) === Math.round(y)) return false;
+            return true;
+        }
+
+        function aiMove() {
+            if (!players[1].alive || opponentType !== 'ai') return;
+            const p = players[1]; const enemy = players[0];
+            const dirs = [{ dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 }];
+            let moveScores = [];
+
+            for (const dir of dirs) {
+                let newX = p.x + dir.dx; let newY = p.y + dir.dy;
+                if (!isSafeCell(newX, newY, p.trail, enemy.trail)) { moveScores.push({ dir: dir, score: -999 }); continue; }
+                let simX = newX, simY = newY, steps = 0;
+                let simTrail = [...p.trail, { x: Math.round(simX), y: Math.round(simY) }];
+                for (let step = 0; step < 30; step++) {
+                    let nextX = simX + dir.dx; let nextY = simY + dir.dy;
+                    if (isSafeCell(nextX, nextY, simTrail, enemy.trail)) { simX = nextX; simY = nextY; simTrail.push({ x: simX, y: simY }); steps++; } else break;
+                }
+                const distToEnemy = Math.abs(simX - enemy.x) + Math.abs(simY - enemy.y);
+                moveScores.push({ dir: dir, score: steps * 10 + (30 - distToEnemy) });
+            }
+            moveScores.sort((a, b) => b.score - a.score);
+            if (moveScores[0] && moveScores[0].score > -999) { p.dirX = moveScores[0].dir.dx; p.dirY = moveScores[0].dir.dy; }
+        }
+
+        // === ИГРОВОЙ ДВИЖОК И ЯРКИЕ КИБЕР-ШЛЕЙФЫ ===
+        function updateGame() {
+            if (!gameActive) return;
+            aiMove(); 
+
+            players.forEach((p) => {
+                if (!p.alive) return;
+
+                p.x += p.dirX; p.y += p.dirY;
+                p.trail.push({ x: p.x, y: p.y });
+
+                const pos = gridToScene(p.x, p.y);
+                
+                // Ленточные неоновые стены (След) как на картинке
+                const wallGeo = new THREE.BoxGeometry(0.9, 1.6, 0.9);
+                const wallMat = new THREE.MeshStandardMaterial({ 
+                    color: p.trailColor, emissive: p.trailColor, emissiveIntensity: 1.2,
+                    transparent: true, opacity: 0.75
+                });
+                const trailBlock = new THREE.Mesh(wallGeo, wallMat);
+                trailBlock.position.set(pos.x, 0.8, pos.z);
+                scene.add(trailBlock);
+                p.trailMeshes.push(trailBlock);
+
+                // Длина шлейфа
+                if (p.trail.length > 45) {
+                    p.trail.shift();
+                    const oldMesh = p.trailMeshes.shift();
+                    scene.remove(oldMesh);
+                }
+
+                p.mesh.position.set(pos.x, 0.5, pos.z);
+                
+                // Направление конуса по осям
+                if (p.dirX === 1) p.mesh.rotation.y = Math.PI / 2;
+                if (p.dirX === -1) p.mesh.rotation.y = -Math.PI / 2;
+                if (p.dirY === 1) p.mesh.rotation.y = 0;
+                if (p.dirY === -1) p.mesh.rotation.y = Math.PI;
+
+                // Триггеры аварий
+                if (p.x < 1 || p.x >= WIDTH - 1 || p.y < 1 || p.y >= HEIGHT - 1) p.alive = false;
+                
+                players.forEach(other => {
+                    other.trail.forEach((t, tIdx) => {
+                        if (other === p && tIdx >= p.trail.length - 2) return;
+                        if (Math.round(t.x) === Math.round(p.x) && Math.round(t.y) === Math.round(p.y)) p.alive = false;
+                    });
+                });
+            });
+
+            const alive = players.filter(p => p.alive);
+            if (alive.length === 1) {
+                gameActive = false; alive[0].score++;
+                document.getElementById('p1Score').innerText = players[0].score;
+                document.getElementById('p2Score').innerText = players[1].score;
+                showMessage("🏆 РАУНД ВЫИГРАЛ: " + alive[0].name.toUpperCase());
+                setTimeout(resetGame, 2500);
+            } else if (alive.length === 0) {
+                gameActive = false; showMessage('💥 ОДНОВРЕМЕННЫЙ ВЗРЫВ!');
+                setTimeout(resetGame, 2500);
+            }
+        }
+
+        function resetGame() {
+            players.forEach(p => {
+                p.trail.forEach((t, i) => scene.remove(p.trailMeshes[i]));
+                p.trail = []; p.trailMeshes = []; p.alive = true;
+            });
+            players[0].x = 15; players[0].y = Math.floor(HEIGHT / 2); players[0].dirX = 1; players[0].dirY = 0;
+            players[1].x = WIDTH - 15; players[1].y = Math.floor(HEIGHT / 2); players[1].dirX = -1; players[1].dirY = 0;
+            gameActive = true;
+        }
+
+        // КОНТРОЛЛЕРЫ НАПРАВЛЕНИЯ
+        function changeDirection(turn) {
+            if (!gameActive) return;
+            const p1 = players[0];
+            if (turn === 'up' && p1.dirY !== 1) { p1.dirX = 0; p1.dirY = -1; }
+            if (turn === 'down' && p1.dirY !== -1) { p1.dirX = 0; p1.dirY = 1; }
+            if (turn === 'left' && p1.dirX !== 1) { p1.dirX = -1; p1.dirY = 0; }
+            if (turn === 'right' && p1.dirX !== -1) { p1.dirX = 1; p1.dirY = 0; }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'w') changeDirection('up');
+            if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's') changeDirection('down');
+            if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') changeDirection('left');
+            if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') changeDirection('right');
+        });
+
+        document.getElementById('btnUp').addEventListener('touchstart', (e) => { e.preventDefault(); changeDirection('up'); }, {passive: false});
+        document.getElementById('btnDown').addEventListener('touchstart', (e) => { e.preventDefault(); changeDirection('down'); }, {passive: false});
+        document.getElementById('btnLeft').addEventListener('touchstart', (e) => { e.preventDefault(); changeDirection('left'); }, {passive: false});
+        document.getElementById('btnRight').addEventListener('touchstart', (e) => { e.preventDefault(); changeDirection('right'); }, {passive: false});
+
+        setInterval(updateGame, 75);
+
+        // ЦИКЛ ОТРИСОВКИ СЦЕНЫ
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
 </body>
 </html>
