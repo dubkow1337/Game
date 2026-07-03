@@ -1,13 +1,13 @@
 const scene = new THREE.Scene();
 
-// 1. ФОН (Растягивается на весь экран)
+// 1. ФОН
 const textureLoader = new THREE.TextureLoader();
 textureLoader.load('assets/images/bg.png', (texture) => {
     scene.background = texture;
 });
 
+// Настроенная камера под нужным углом
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
-// Чуть приподнимем и отодвинем камеру для лучшего обзора высокого забора
 camera.position.set(0, 68, 58); 
 camera.lookAt(0, -2, 0);
 
@@ -17,39 +17,53 @@ document.body.appendChild(renderer.domElement);
 
 const arenaGroup = new THREE.Group();
 
-// Размеры внутренней игровой зоны (где игрок не умирает)
+// Игровые размеры
 const playWidth = WIDTH - 2;
 const playHeight = HEIGHT - 2;
+const radius = 6; // Радиус закругления углов
 
-// 2. ПОЛ: Матовое стекло, разделенное по цветам
+// Функция для генерации формы скругленного прямоугольника
+function createRoundedRectShape(w, h, r) {
+    const shape = new THREE.Shape();
+    const x = -w / 2, y = -h / 2;
+    
+    shape.moveTo(x, y + r);
+    shape.lineTo(x, y + h - r);
+    shape.absarc(x + r, y + h - r, r, Math.PI, Math.PI / 2, true);
+    shape.lineTo(x + w - r, y + h);
+    shape.absarc(x + w - r, y + h - r, r, Math.PI / 2, 0, true);
+    shape.lineTo(x + w, y + r);
+    shape.absarc(x + w - r, y + r, r, 0, -Math.PI / 2, true);
+    shape.lineTo(x + r, y);
+    shape.absarc(x + r, y + r, r, -Math.PI / 2, Math.PI, true);
+    
+    return shape;
+}
+
+// 2. ПОЛ И СЕТКА
 function createFloor() {
-    const floorGeo = new THREE.PlaneGeometry(playWidth / 2, playHeight);
+    // Делаем общую подложку со скруглениями
+    const shape = createRoundedRectShape(playWidth, playHeight, radius);
+    const floorGeo = new THREE.ShapeGeometry(shape);
     
-    // Левая матовая половина (Синяя)
-    const floorLeft = new THREE.Mesh(floorGeo, new THREE.MeshStandardMaterial({ 
-        color: 0x002233, transparent: true, opacity: 0.5, roughness: 0.7, side: THREE.DoubleSide 
-    }));
-    floorLeft.position.set(-playWidth / 4, 0, 0);
-    floorLeft.rotation.x = -Math.PI / 2;
+    const floorMat = new THREE.MeshStandardMaterial({ 
+        color: 0x020816, 
+        transparent: true, 
+        opacity: 0.65, 
+        roughness: 0.7, 
+        side: THREE.DoubleSide 
+    });
     
-    // Правая матовая половина (Оранжевая)
-    const floorRight = new THREE.Mesh(floorGeo, new THREE.MeshStandardMaterial({ 
-        color: 0x331100, transparent: true, opacity: 0.5, roughness: 0.7, side: THREE.DoubleSide 
-    }));
-    floorRight.position.set(playWidth / 4, 0, 0);
-    floorRight.rotation.x = -Math.PI / 2;
-    
-    arenaGroup.add(floorLeft, floorRight);
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    arenaGroup.add(floor);
 
-    // СЕТКИ: Создаем две отдельные сетки, строго запертые внутри игровых зон
-    // Левая сетка
-    const gridLeft = new THREE.GridHelper(playWidth / 2, 10, 0x00ffff, 0x004455);
+    // МЕЛКАЯ СЕТКА (Увеличили число делений до 40, чтобы видеть линии движения)
+    const gridLeft = new THREE.GridHelper(playWidth / 2, 40, 0x00ffff, 0x002233);
     gridLeft.position.set(-playWidth / 4, 0.02, 0);
-    // Масштабируем по оси Z, чтобы сетка идеально вписалась в прямоугольник поля
     gridLeft.scale.z = playHeight / (playWidth / 2);
     
-    // Правая сетка
-    const gridRight = new THREE.GridHelper(playWidth / 2, 10, 0xff5500, 0x551100);
+    const gridRight = new THREE.GridHelper(playWidth / 2, 40, 0xff5500, 0x331100);
     gridRight.position.set(playWidth / 4, 0.02, 0);
     gridRight.scale.z = playHeight / (playWidth / 2);
 
@@ -57,76 +71,55 @@ function createFloor() {
 }
 createFloor();
 
-// 3. МЕГА-ЗАБОР: Высокие полупрозрачные стены с неоновым светящимся кантом
+// 3. ЗАКРУГЛЕННЫЙ ЗАБОР (Материальный, с неоновым кантом)
 function createHighFence() {
-    const w = playWidth / 2;
-    const h = playHeight / 2;
-    const fenceHeight = 5; // Высота забора
+    const fenceHeight = 5;
     
-    // Функция для создания светящегося канта (верхней кромки)
-    const createNeonEdge = (points, color) => {
-        const geometry = new THREE.BufferGeometry().setFromPoints(points);
-        const material = new THREE.LineBasicMaterial({ color: color, linewidth: 3 });
-        return new THREE.Line(geometry, material);
-    };
-
-    // --- ЛЕВАЯ СТОРОНА ЗАБОРА (СИНЯЯ) ---
-    const leftShape = new THREE.Shape();
-    leftShape.moveTo(0, h);
-    leftShape.lineTo(-w, h);
-    leftShape.lineTo(-w, -h);
-    leftShape.lineTo(0, -h);
-
-    // Делаем объемную тонкую стену
-    const leftWallGeo = new THREE.ExtrudeGeometry(leftShape, { depth: fenceHeight, bevelEnabled: false });
-    const leftWallMat = new THREE.MeshStandardMaterial({
-        color: 0x00ffff, transparent: true, opacity: 0.15, roughness: 0.2, metalness: 0.5, side: THREE.DoubleSide
+    // Форма внешней стены (вырезаем внутреннюю часть, чтобы получить только забор)
+    const wallShape = createRoundedRectShape(playWidth, playHeight, radius);
+    
+    // Настройки выдавливания формы вверх
+    const extrudeSettings = { depth: fenceHeight, bevelEnabled: false };
+    const wallGeo = new THREE.ExtrudeGeometry(wallShape, extrudeSettings);
+    
+    // Материал забора: увеличили видимость (opacity 0.4) и добавили внутреннее свечение (emissive)
+    const wallMat = new THREE.MeshStandardMaterial({
+        color: 0x0d1b2a,
+        emissive: 0x001122, // Легкое свечение самого пластика забора в темноте
+        transparent: true, 
+        opacity: 0.4, 
+        roughness: 0.1, 
+        metalness: 0.8, 
+        side: THREE.DoubleSide
     });
-    const leftWall = new THREE.Mesh(leftWallGeo, leftWallMat);
-    leftWall.rotation.x = Math.PI / 2; // Переворачиваем вертикально
-    arenaGroup.add(leftWall);
+    
+    const wall = new THREE.Mesh(wallGeo, wallMat);
+    wall.rotation.x = Math.PI / 2; // Ставим вертикально
+    // Сдвигаем по оси Y, чтобы забор шел вверх от пола
+    wall.position.y = fenceHeight; 
+    arenaGroup.add(wall);
 
-    // Верхний светящийся контур для левой стены
-    const leftEdgePoints = [
-        new THREE.Vector3(0, fenceHeight, h),
-        new THREE.Vector3(-w, fenceHeight, h),
-        new THREE.Vector3(-w, fenceHeight, -h),
-        new THREE.Vector3(0, fenceHeight, -h)
-    ];
-    arenaGroup.add(createNeonEdge(leftEdgePoints, 0x00ffff));
-
-    // --- ПРАВАЯ СТОРОНА ЗАБОРА (ОРАНЖЕВАЯ) ---
-    const rightShape = new THREE.Shape();
-    rightShape.moveTo(0, -h);
-    rightShape.lineTo(w, -h);
-    rightShape.lineTo(w, h);
-    rightShape.lineTo(0, h);
-
-    const rightWallGeo = new THREE.ExtrudeGeometry(rightShape, { depth: fenceHeight, bevelEnabled: false });
-    const rightWallMat = new THREE.MeshStandardMaterial({
-        color: 0xff5500, transparent: true, opacity: 0.15, roughness: 0.2, metalness: 0.5, side: THREE.DoubleSide
-    });
-    const rightWall = new THREE.Mesh(rightWallGeo, rightWallMat);
-    rightWall.rotation.x = Math.PI / 2;
-    arenaGroup.add(rightWall);
-
-    // Верхний светящийся контур для правой стены
-    const rightEdgePoints = [
-        new THREE.Vector3(0, fenceHeight, -h),
-        new THREE.Vector3(w, fenceHeight, -h),
-        new THREE.Vector3(w, fenceHeight, h),
-        new THREE.Vector3(0, fenceHeight, h)
-    ];
-    arenaGroup.add(createNeonEdge(rightEdgePoints, 0xff5500));
+    // СВЕТЯЩИЙСЯ КАНТ ПО КРАЯМ (Верхняя кромка забора)
+    const points = wallShape.getPoints(50); // Получаем точки скругленного контура
+    const edge3DPoints = points.map(p => new THREE.Vector3(p.x, fenceHeight, -p.y));
+    
+    const edgeGeo = new THREE.BufferGeometry().setFromPoints(edge3DPoints);
+    
+    // Делим визуально кант на две половины (синий и оранжевый) через два объекта
+    const leftEdgeMat = new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 3 });
+    const rightEdgeMat = new THREE.LineBasicMaterial({ color: 0xff5500, linewidth: 3 });
+    
+    const neonLineLeft = new THREE.Line(edgeGeo, leftEdgeMat);
+    arenaGroup.add(neonLineLeft);
 }
 createHighFence();
 
 scene.add(arenaGroup);
 
-// Направленный и рассеянный свет, чтобы матовые стены и пол "играли" бликами
+// Направленный свет
 scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-const dirLight = new THREE.DirectionalLight(0xffffff, 0.4);
-dirLight.position.set(0, 30, 10);
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+dirLight.position.set(0, 40, 20);
 scene.add(dirLight);
 
 function animate() {
