@@ -1,6 +1,7 @@
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x01030a);
-scene.fog = new THREE.FogExp2(0x01030a, 0.012);
+// Делаем туман чуть мягче, чтобы он красиво уводил края арены в глубину фона
+scene.fog = new THREE.FogExp2(0x01030a, 0.008);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 52, 48); 
@@ -10,31 +11,51 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-scene.add(new THREE.AmbientLight(0x0a1530, 0.6));
-const blueLight = new THREE.PointLight(0x00ffff, 2, 60); blueLight.position.set(-20, 10, 0); scene.add(blueLight);
-const orangeLight = new THREE.PointLight(0xff4400, 2, 60); orangeLight.position.set(20, 10, 0); scene.add(orangeLight);
+// СВЕТ (Подстраиваем под тональность картинки 1782981130590_2.png)
+scene.add(new THREE.AmbientLight(0x0a1128, 0.8));
+const blueLight = new THREE.PointLight(0x00ffff, 2.5, 70); blueLight.position.set(-25, 12, 0); scene.add(blueLight);
+const orangeLight = new THREE.PointLight(0xff5500, 2.5, 70); orangeLight.position.set(25, 12, 0); scene.add(orangeLight);
 
-// Генерация города
-const cityGroup = new THREE.Group();
-for(let i=0; i<60; i++) {
-    const h = 15 + Math.random() * 40; const w = 6 + Math.random() * 10; const d = 6 + Math.random() * 10;
-    const buildGeo = new THREE.BoxGeometry(w, h, d);
-    const building = new THREE.Mesh(buildGeo, new THREE.MeshStandardMaterial({ color: 0x03050d, roughness: 0.7 }));
-    const angle = Math.random() * Math.PI * 2; const radius = 70 + Math.random() * 60;
-    building.position.set(Math.cos(angle)*radius, -h/2 - 5, Math.sin(angle)*radius);
-    cityGroup.add(building);
-    cityGroup.add(new THREE.BoxHelper(building, Math.random() > 0.5 ? 0x00ffff : 0xff00aa));
-}
-scene.add(cityGroup);
+// КИБЕР-ГОРОД ИЗ КАРТИНКИ (Задний фон)
+const textureLoader = new THREE.TextureLoader();
+textureLoader.load('assets/images/bg.png', function(texture) {
+    // Создаем гигантскую плоскость для заднего плана
+    const bgGeo = new THREE.PlaneGeometry(210, 120);
+    // MeshBasicMaterial не реагирует на свет, сохраняя оригинальную яркость картинки
+    const bgMat = new THREE.MeshBasicMaterial({ 
+        map: texture, 
+        side: THREE.DoubleSide,
+        depthWrite: false // Чтобы фон всегда оставался на самом заднем плане
+    });
+    const backgroundMesh = new THREE.Mesh(bgGeo, bgMat);
+    
+    // Отодвигаем назад и наклоняем, чтобы поймать перспективу с картинки 1782981130590_2.png
+    backgroundMesh.position.set(0, -15, -60);
+    backgroundMesh.rotation.x = -Math.PI / 12; 
+    scene.add(backgroundMesh);
+});
 
-// Генерация парящей арены
+// ПАРЯЩАЯ АРЕНА
 const arenaGroup = new THREE.Group();
-const arenaFloor = new THREE.Mesh(new THREE.BoxGeometry(WIDTH, 0.5, HEIGHT), new THREE.MeshStandardMaterial({ color: 0x040814, roughness: 0.3, metalness: 0.8 }));
-arenaFloor.position.y = -0.25; arenaGroup.add(arenaFloor);
 
-const gridLeft = new THREE.GridHelper(WIDTH/2, WIDTH/2, 0x00ffff, 0x004455); gridLeft.position.set(-WIDTH/4, 0.02, 0); arenaGroup.add(gridLeft);
-const gridRight = new THREE.GridHelper(WIDTH/2, WIDTH/2, 0xff5500, 0x551100); gridRight.position.set(WIDTH/4, 0.02, 0); arenaGroup.add(gridRight);
+// Материал пола делаем более глянцевым (уменьшаем roughness)
+const arenaFloor = new THREE.Mesh(
+    new THREE.BoxGeometry(WIDTH, 0.5, HEIGHT), 
+    new THREE.MeshStandardMaterial({ color: 0x020511, roughness: 0.15, metalness: 0.9 })
+);
+arenaFloor.position.y = -0.25; 
+arenaGroup.add(arenaFloor);
 
+// Сетки игроков
+const gridLeft = new THREE.GridHelper(WIDTH/2, WIDTH/2, 0x00ffff, 0x002233); 
+gridLeft.position.set(-WIDTH/4, 0.02, 0); 
+arenaGroup.add(gridLeft);
+
+const gridRight = new THREE.GridHelper(WIDTH/2, WIDTH/2, 0xff5500, 0x330a00); 
+gridRight.position.set(WIDTH/4, 0.02, 0); 
+arenaGroup.add(gridRight);
+
+// НЕОНОВЫЙ КОНТУР АРЕНЫ
 function createNeonFrame() {
     const w = WIDTH / 2; const h = HEIGHT / 2; const r = 4;
     const leftPoints = [];
