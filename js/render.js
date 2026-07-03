@@ -8,7 +8,7 @@ textureLoader.load('assets/images/bg.png', (texture) => {
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
 // Чуть приподнимем и отодвинем камеру для лучшего обзора высокого забора
-camera.position.set(0, 55, 65); 
+camera.position.set(0, 68, 58); 
 camera.lookAt(0, -2, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
