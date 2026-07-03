@@ -1,0 +1,30 @@
+body { 
+    margin: 0; overflow: hidden; 
+    font-family: 'Segoe UI', sans-serif; background: #010206;
+    touch-action: none; -webkit-user-select: none; user-select: none;
+}
+#ui { 
+    position: absolute; top: 25px; left: 50%; transform: translateX(-50%);
+    color: #fff; font-size: 26px; font-weight: 800; letter-spacing: 4px;
+    background: rgba(2, 4, 12, 0.85); padding: 12px 40px; 
+    border-radius: 30px; box-shadow: 0 0 30px rgba(0, 255, 255, 0.2); z-index: 10; 
+    text-align: center; border: 1px solid rgba(0, 255, 255, 0.3);
+}
+#p1Score { color: #00ffff; text-shadow: 0 0 12px #00ffff; }
+#p2Score { color: #ff5500; text-shadow: 0 0 12px #ff5500; }
+#message { 
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+    color: #ff0055; font-size: 48px; font-weight: 900; letter-spacing: 2px;
+    text-shadow: 0 0 25px #ff0055; text-align: center; z-index: 10; pointer-events: none; 
+}
+#dpad { position: absolute; bottom: 40px; right: 40px; width: 160px; height: 160px; z-index: 20; display: none; }
+.dbtn {
+    position: absolute; width: 50px; height: 50px;
+    background: rgba(0, 255, 255, 0.08); border: 2px solid #00ffff;
+    border-radius: 15px; color: #00ffff; font-size: 22px; display: flex;
+    align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0,255,255,0.1);
+}
+.dbtn:active { background: rgba(0, 255, 255, 0.4); box-shadow: 0 0 25px #00ffff; }
+#btnUp { top: 0; left: 55px; } #btnDown { bottom: 0; left: 55px; }
+#btnLeft { top: 55px; left: 0; } #btnRight { top: 55px; right: 0; }
+@media (max-width: 1024px) { #dpad { display: block; } }
