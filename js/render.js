@@ -1,85 +1,75 @@
-// --- ИНИЦИАЛИЗАЦИЯ ---
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000);
 
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 52, 48); 
-camera.lookAt(0, -2, -2);
+// 1. ФОН: Делаем его глобальным фоном сцены, чтобы он растягивался на весь экран
+const textureLoader = new THREE.TextureLoader();
+textureLoader.load('assets/images/bg.png', (texture) => {
+    scene.background = texture;
+});
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+camera.position.set(0, 50, 60); 
+camera.lookAt(0, 0, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// --- ФОН ---
-const textureLoader = new THREE.TextureLoader();
-textureLoader.load('assets/images/bg.png', function(texture) {
-    const bgGeo = new THREE.PlaneGeometry(210, 120);
-    const bgMat = new THREE.MeshBasicMaterial({ 
-        map: texture, 
-        side: THREE.FrontSide,
-        depthWrite: false,
-        toneMapped: false 
-    });
-    const backgroundMesh = new THREE.Mesh(bgGeo, bgMat);
-    backgroundMesh.position.set(0, -10, -50);
-    scene.add(backgroundMesh);
-});
-
-// --- АРЕНА ---
 const arenaGroup = new THREE.Group();
 
-// 1. Изящный стеклянный пол
-function createGlassFloor() {
-    const floorGeo = new THREE.PlaneGeometry(WIDTH / 2, HEIGHT);
-    
-    // Левая сторона (Синяя)
-    const floorLeft = new THREE.Mesh(floorGeo, new THREE.MeshPhysicalMaterial({ 
-        color: 0x00ffff, transparent: true, opacity: 0.2, roughness: 0, metalness: 0.1, side: THREE.DoubleSide 
-    }));
-    floorLeft.position.set(-WIDTH / 4, 0, 0);
-    floorLeft.rotation.x = -Math.PI / 2;
-    
-    // Правая сторона (Оранжевая)
-    const floorRight = new THREE.Mesh(floorGeo, new THREE.MeshPhysicalMaterial({ 
-        color: 0xff5500, transparent: true, opacity: 0.2, roughness: 0, metalness: 0.1, side: THREE.DoubleSide 
-    }));
-    floorRight.position.set(WIDTH / 4, 0, 0);
-    floorRight.rotation.x = -Math.PI / 2;
-    
-    arenaGroup.add(floorLeft, floorRight);
+// 2. ПОЛ: Матовое стекло с узорами
+function createFloor() {
+    // Основная подложка
+    const floorGeo = new THREE.PlaneGeometry(WIDTH, HEIGHT);
+    const floorMat = new THREE.MeshStandardMaterial({ 
+        color: 0x010510, 
+        transparent: true, 
+        opacity: 0.6, 
+        roughness: 0.8, // Эффект мутности
+        side: THREE.DoubleSide 
+    });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    arenaGroup.add(floor);
+
+    // Добавляем узор сетки (как на картинке)
+    const grid = new THREE.GridHelper(WIDTH, 20, 0x00ffff, 0x00ffff);
+    grid.position.y = 0.05;
+    arenaGroup.add(grid);
 }
-createGlassFloor();
+createFloor();
 
-// 2. Изящный неоновый забор
+// 3. ЗАБОР: Используем LineSegments для идеальных линий (без треугольников)
 function createNeonFence() {
-    const w = WIDTH / 2; const h = HEIGHT / 2; const r = 4;
+    const w = WIDTH / 2;
+    const h = HEIGHT / 2;
     
-    const createLine = (points, color) => {
-        const curve = new THREE.CatmullRomCurve3(points);
-        const geo = new THREE.TubeGeometry(curve, 100, 0.15, 8, false);
-        const mat = new THREE.MeshBasicMaterial({ color: color });
-        return new THREE.Mesh(geo, mat);
-    };
-
-    const leftPoints = [];
-    for(let t = Math.PI/2; t <= 3*Math.PI/2; t += 0.1) leftPoints.push(new THREE.Vector3(-w+r + Math.cos(t)*r, 0.5, h-r + Math.sin(t)*r));
-    leftPoints.unshift(new THREE.Vector3(0, 0.5, h)); leftPoints.push(new THREE.Vector3(0, 0.5, -h));
+    // Создаем точки контура
+    const points = [];
+    // Простая прямоугольная форма с закруглениями (для начала)
+    for(let i = 0; i <= 20; i++) points.push(new THREE.Vector3(-w + i*w/10, 0.5, h)); // Верх
+    for(let i = 0; i <= 20; i++) points.push(new THREE.Vector3(w, 0.5, h - i*h/10)); // Правая сторона
     
-    const rightPoints = [];
-    for(let t = -Math.PI/2; t <= Math.PI/2; t += 0.1) rightPoints.push(new THREE.Vector3(w-r + Math.cos(t)*r, 0.5, h-r + Math.sin(t)*r));
-    rightPoints.unshift(new THREE.Vector3(0, 0.5, -h)); rightPoints.push(new THREE.Vector3(0, 0.5, h));
-
-    arenaGroup.add(createLine(leftPoints, 0x00ffff));
-    arenaGroup.add(createLine(rightPoints, 0xff5500));
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 2 });
+    const line = new THREE.Line(geometry, material);
+    
+    arenaGroup.add(line);
 }
 createNeonFence();
+
 scene.add(arenaGroup);
 
-// --- ОСТАЛЬНОЕ ---
-players.forEach(p => scene.add(p.mesh));
+// Освещение для матового пола
+scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 
 function animate() {
     requestAnimationFrame(animate);
     renderer.render(scene, camera);
 }
 animate();
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
