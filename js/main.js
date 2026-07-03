@@ -4,7 +4,7 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's') changeDirection('down');
     if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') changeDirection('left');
     if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') changeDirection('right');
-});
+}); 
 
 // Назначение мобильного тач-управления
 document.getElementById('btnUp').addEventListener('touchstart', function(e) { e.preventDefault(); changeDirection('up'); }, {passive: false});
