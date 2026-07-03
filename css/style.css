@@ -1,0 +1,232 @@
+/* ===== ГЛОБАЛЬНЫЕ СТИЛИ ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    overflow: hidden;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #050814;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* ===== ИНТЕРФЕЙС ===== */
+#ui {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #fff;
+    font-size: 22px;
+    font-weight: bold;
+    background: rgba(5, 8, 20, 0.9);
+    padding: 12px 35px;
+    border: 2px solid #00ffff;
+    border-radius: 20px;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.3), inset 0 0 30px rgba(0, 255, 255, 0.05);
+    z-index: 10;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    backdrop-filter: blur(10px);
+}
+
+#p1Score {
+    color: #00ffff;
+    text-shadow: 0 0 20px #00ffff;
+    font-size: 32px;
+}
+
+#p2Score {
+    color: #ffaa00;
+    text-shadow: 0 0 20px #ffaa00;
+    font-size: 32px;
+}
+
+.score-label {
+    opacity: 0.6;
+    font-size: 14px;
+    letter-spacing: 2px;
+}
+
+.vs {
+    font-size: 24px;
+    opacity: 0.3;
+}
+
+/* ===== СООБЩЕНИЯ ===== */
+#message {
+    position: absolute;
+    top: 45%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ff0055;
+    font-size: 52px;
+    font-weight: 900;
+    text-shadow: 0 0 40px #ff0055, 0 0 80px #ff0055, 0 0 120px #ff0055;
+    text-align: center;
+    z-index: 10;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s;
+    font-style: italic;
+}
+
+#message.show {
+    opacity: 1;
+}
+
+/* ===== ЗАГРУЗКА ===== */
+#loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #00ffff;
+    font-size: 24px;
+    z-index: 30;
+    background: rgba(0, 0, 0, 0.9);
+    padding: 30px 50px;
+    border-radius: 15px;
+    border: 2px solid #00ffff;
+    text-align: center;
+    box-shadow: 0 0 60px rgba(0, 255, 255, 0.2);
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid transparent;
+    border-top: 3px solid #00ffff;
+    border-radius: 50%;
+    margin: 15px auto 0;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* ===== ИНФО ===== */
+#info {
+    position: absolute;
+    bottom: 30px;
+    left: 30px;
+    color: rgba(255, 255, 255, 0.2);
+    font-size: 12px;
+    z-index: 10;
+    letter-spacing: 1px;
+}
+
+/* ===== D-PAD (МОБИЛЬНОЕ УПРАВЛЕНИЕ) ===== */
+#dpad {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    width: 180px;
+    height: 180px;
+    z-index: 20;
+    display: none;
+}
+
+.dbtn {
+    position: absolute;
+    width: 55px;
+    height: 55px;
+    background: rgba(0, 255, 255, 0.1);
+    border: 2px solid #00ffff;
+    border-radius: 12px;
+    color: #00ffff;
+    font-size: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.15);
+    cursor: pointer;
+    transition: all 0.05s;
+    touch-action: none;
+    text-shadow: 0 0 10px #00ffff;
+}
+
+.dbtn:active {
+    background: rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 30px #00ffff;
+    transform: scale(0.92);
+}
+
+#btnUp {
+    top: 0;
+    left: 62px;
+}
+#btnDown {
+    bottom: 0;
+    left: 62px;
+}
+#btnLeft {
+    top: 62px;
+    left: 0;
+}
+#btnRight {
+    top: 62px;
+    right: 0;
+}
+
+/* ===== АДАПТИВНОСТЬ ===== */
+@media (max-width: 1024px) {
+    #dpad {
+        display: block;
+    }
+    #ui {
+        font-size: 16px;
+        padding: 8px 20px;
+        gap: 15px;
+    }
+    #p1Score,
+    #p2Score {
+        font-size: 24px;
+    }
+    #message {
+        font-size: 32px;
+    }
+}
+
+@media (max-width: 600px) {
+    #dpad {
+        width: 140px;
+        height: 140px;
+        bottom: 20px;
+        right: 20px;
+    }
+    .dbtn {
+        width: 42px;
+        height: 42px;
+        font-size: 20px;
+    }
+    #btnUp {
+        top: 0;
+        left: 49px;
+    }
+    #btnDown {
+        bottom: 0;
+        left: 49px;
+    }
+    #btnLeft {
+        top: 49px;
+        left: 0;
+    }
+    #btnRight {
+        top: 49px;
+        right: 0;
+    }
+    #info {
+        display: none;
+    }
+}
