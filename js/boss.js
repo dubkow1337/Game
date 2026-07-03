@@ -3,3 +3,4 @@ const Boss = {
     mesh: null,
     update() {}
 };
+ 
