@@ -1,4 +1,4 @@
-function createConeBike(colorHex) {
+function createConeBike(colorHex) { 
     const group = new THREE.Group();
     const coneGeo = new THREE.ConeGeometry(0.5, 1.6, 16);
     const coneMat = new THREE.MeshStandardMaterial({ 
