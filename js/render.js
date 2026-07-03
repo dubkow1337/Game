@@ -1,5 +1,5 @@
 const scene = new THREE.Scene();
-
+ 
 // 1. ФОН
 const textureLoader = new THREE.TextureLoader();
 textureLoader.load('assets/images/bg.png', (texture) => {
