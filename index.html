@@ -17,44 +17,47 @@
         }
         
         #ui {
-            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
-            color: #fff; font-size: 20px; font-weight: bold;
-            background: rgba(5, 8, 20, 0.85); padding: 8px 25px;
-            border: 2px solid #00ffff; border-radius: 15px;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            color: #fff; font-size: 22px; font-weight: bold;
+            background: rgba(5, 8, 20, 0.9); padding: 12px 35px;
+            border: 2px solid #00ffff; border-radius: 20px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3), inset 0 0 30px rgba(0, 255, 255, 0.05);
             z-index: 10; text-align: center;
-            display: flex; align-items: center; gap: 20px;
-            backdrop-filter: blur(5px);
+            display: flex; align-items: center; gap: 30px;
+            backdrop-filter: blur(10px);
         }
-        #p1Score { color: #00ffff; text-shadow: 0 0 15px #00ffff; font-size: 28px; }
-        #p2Score { color: #ffaa00; text-shadow: 0 0 15px #ffaa00; font-size: 28px; }
-        .score-label { opacity: 0.6; font-size: 14px; }
+        #p1Score { color: #00ffff; text-shadow: 0 0 20px #00ffff; font-size: 32px; }
+        #p2Score { color: #ffaa00; text-shadow: 0 0 20px #ffaa00; font-size: 32px; }
+        .score-label { opacity: 0.6; font-size: 14px; letter-spacing: 2px; }
+        .vs { font-size: 24px; opacity: 0.3; }
         
         #message {
             position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%);
-            color: #ff0055; font-size: 48px; font-weight: 900;
-            text-shadow: 0 0 30px #ff0055, 0 0 60px #ff0055;
+            color: #ff0055; font-size: 52px; font-weight: 900;
+            text-shadow: 0 0 40px #ff0055, 0 0 80px #ff0055, 0 0 120px #ff0055;
             text-align: center; z-index: 10; pointer-events: none;
             opacity: 0; transition: opacity 0.5s;
+            font-style: italic;
         }
         #message.show { opacity: 1; }
 
         #loading {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             color: #00ffff; font-size: 24px; z-index: 30;
-            background: rgba(0,0,0,0.8); padding: 20px 40px;
-            border-radius: 10px; border: 2px solid #00ffff;
+            background: rgba(0,0,0,0.9); padding: 30px 50px;
+            border-radius: 15px; border: 2px solid #00ffff;
             text-align: center;
+            box-shadow: 0 0 60px rgba(0, 255, 255, 0.2);
         }
-        #loading .progress {
-            width: 200px; height: 4px;
-            background: #1a1a3a; margin-top: 10px;
-            border-radius: 2px; overflow: hidden;
+        #loading .spinner {
+            width: 50px; height: 50px;
+            border: 3px solid transparent;
+            border-top: 3px solid #00ffff;
+            border-radius: 50%;
+            margin: 15px auto 0;
+            animation: spin 1s linear infinite;
         }
-        #loading .progress-bar {
-            width: 0%; height: 100%;
-            background: #00ffff; transition: width 0.3s;
-        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
 
         #dpad {
             position: absolute; bottom: 30px; right: 30px;
@@ -69,6 +72,7 @@
             box-shadow: 0 0 15px rgba(0, 255, 255, 0.15);
             cursor: pointer; transition: all 0.05s;
             touch-action: none;
+            text-shadow: 0 0 10px #00ffff;
         }
         .dbtn:active { 
             background: rgba(0, 255, 255, 0.4); 
@@ -80,9 +84,17 @@
         #btnLeft { top: 62px; left: 0; }
         #btnRight { top: 62px; right: 0; }
 
+        #info {
+            position: absolute; bottom: 30px; left: 30px;
+            color: rgba(255,255,255,0.2); font-size: 12px;
+            z-index: 10; letter-spacing: 1px;
+        }
+
         @media (max-width: 1024px) {
             #dpad { display: block; }
-            #ui { font-size: 16px; padding: 6px 15px; gap: 10px; }
+            #ui { font-size: 16px; padding: 8px 20px; gap: 15px; }
+            #p1Score, #p2Score { font-size: 24px; }
+            #message { font-size: 32px; }
         }
         @media (max-width: 600px) {
             #dpad { width: 140px; height: 140px; bottom: 20px; right: 20px; }
@@ -91,23 +103,23 @@
             #btnDown { bottom: 0; left: 49px; }
             #btnLeft { top: 49px; left: 0; }
             #btnRight { top: 49px; right: 0; }
-            #message { font-size: 28px; }
+            #info { display: none; }
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
 </head>
 <body>
     <div id="ui">
         <span><span class="score-label">СИНИЙ</span><br><span id="p1Score">0</span></span>
-        <span style="font-size:24px; opacity:0.3;">⚡</span>
+        <span class="vs">⚡</span>
         <span><span class="score-label">ОРАНЖЕВЫЙ</span><br><span id="p2Score">0</span></span>
     </div>
     <div id="message"></div>
     <div id="loading">
-        ⏳ ЗАГРУЗКА МОДЕЛИ...
-        <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+        ⚡ ЗАГРУЗКА АРЕНЫ
+        <div class="spinner"></div>
     </div>
+    <div id="info">▼ TRON 3D // КИБЕР АРЕНА</div>
 
     <div id="dpad">
         <div class="dbtn" id="btnUp">▲</div>
@@ -120,97 +132,341 @@
         // ===== КОНФИГУРАЦИЯ =====
         const WIDTH = 70;   
         const HEIGHT = 40;  
-        const TRAIL_LENGTH = 35;
+        const TRAIL_LENGTH = 40;
+        const CELL_SIZE = 0.9;
 
         // ===== СОСТОЯНИЕ =====
         let gameActive = false;
         let msgTimeout;
         let roundCount = 0;
         let gameInterval = null;
-        let modelLoaded = false;
 
         // ===== THREE.JS СЦЕНА =====
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x050814);
+        scene.fog = new THREE.FogExp2(0x050814, 0.0035);
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
-        camera.position.set(0, 45, 55);
+        const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 200);
+        camera.position.set(0, 50, 60);
         camera.lookAt(0, 0, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
         document.body.appendChild(renderer.domElement);
 
         // ===== ОСВЕЩЕНИЕ =====
-        const ambient = new THREE.AmbientLight(0x2233aa, 0.4);
+        const ambient = new THREE.AmbientLight(0x2233aa, 0.3);
         scene.add(ambient);
 
-        const mainLight = new THREE.DirectionalLight(0xffffff, 1);
-        mainLight.position.set(30, 50, 30);
+        const mainLight = new THREE.DirectionalLight(0xffeedd, 0.8);
+        mainLight.position.set(40, 60, 40);
         mainLight.castShadow = true;
-        mainLight.shadow.mapSize.width = 1024;
-        mainLight.shadow.mapSize.height = 1024;
+        mainLight.shadow.mapSize.width = 2048;
+        mainLight.shadow.mapSize.height = 2048;
+        mainLight.shadow.camera.near = 0.1;
+        mainLight.shadow.camera.far = 150;
+        mainLight.shadow.camera.left = -50;
+        mainLight.shadow.camera.right = 50;
+        mainLight.shadow.camera.top = 50;
+        mainLight.shadow.camera.bottom = -50;
         scene.add(mainLight);
 
-        const fillLight = new THREE.DirectionalLight(0x00ffff, 0.5);
-        fillLight.position.set(-30, 20, -30);
+        const fillLight = new THREE.DirectionalLight(0x00ffff, 0.3);
+        fillLight.position.set(-40, 20, -40);
         scene.add(fillLight);
 
+        const rimLight = new THREE.DirectionalLight(0xff00aa, 0.2);
+        rimLight.position.set(0, 10, -60);
+        scene.add(rimLight);
+
         // ===== АРЕНА =====
-        const floorGeo = new THREE.PlaneGeometry(WIDTH, HEIGHT);
+        // Пол с текстурой сетки
+        const floorGroup = new THREE.Group();
+        
         const floorMat = new THREE.MeshStandardMaterial({ 
             color: 0x0a0f24, 
-            roughness: 0.3, 
+            roughness: 0.2, 
             metalness: 0.9,
             emissive: 0x050810,
-            emissiveIntensity: 0.2
+            emissiveIntensity: 0.5
         });
-        const floor = new THREE.Mesh(floorGeo, floorMat);
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(WIDTH, HEIGHT), floorMat);
         floor.rotation.x = -Math.PI / 2;
         floor.receiveShadow = true;
-        scene.add(floor);
+        floorGroup.add(floor);
 
+        // Основная сетка
         const gridHelper = new THREE.GridHelper(Math.max(WIDTH, HEIGHT), Math.max(WIDTH, HEIGHT), 0x00ffff, 0x00ffff);
-        gridHelper.position.y = 0.02;
-        gridHelper.material.opacity = 0.3;
+        gridHelper.position.y = 0.05;
+        gridHelper.material.opacity = 0.15;
         gridHelper.material.transparent = true;
-        scene.add(gridHelper);
+        floorGroup.add(gridHelper);
 
+        // Дополнительная тонкая сетка
+        const gridHelper2 = new THREE.GridHelper(Math.max(WIDTH, HEIGHT), Math.max(WIDTH, HEIGHT) * 2, 0x00ffff, 0x00ffff);
+        gridHelper2.position.y = 0.03;
+        gridHelper2.material.opacity = 0.05;
+        gridHelper2.material.transparent = true;
+        floorGroup.add(gridHelper2);
+
+        scene.add(floorGroup);
+
+        // ===== СТЕНЫ С НЕОНОМ =====
         function createWall(w, h, d, x, z, rotY = 0) {
             const group = new THREE.Group();
+            
+            // Основная стена
             const wallMat = new THREE.MeshStandardMaterial({ 
                 color: 0x111630, 
-                roughness: 0.3, 
-                metalness: 0.8,
+                roughness: 0.2, 
+                metalness: 0.9,
                 emissive: 0x0a0f24,
-                emissiveIntensity: 0.3
+                emissiveIntensity: 0.5
             });
             const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
             mesh.position.set(0, h/2, 0);
             mesh.castShadow = true;
+            mesh.receiveShadow = true;
             group.add(mesh);
 
+            // Верхний неон
             const neonMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
-            const topLine = new THREE.Mesh(new THREE.BoxGeometry(w, 0.15, d + 0.1), neonMat);
+            const topLine = new THREE.Mesh(new THREE.BoxGeometry(w, 0.1, d + 0.2), neonMat);
             topLine.position.set(0, h, 0);
             group.add(topLine);
 
+            // Нижний неон
             const bottomNeon = new THREE.MeshBasicMaterial({ color: 0xff00aa });
-            const bottomLine = new THREE.Mesh(new THREE.BoxGeometry(w, 0.15, d + 0.1), bottomNeon);
-            bottomLine.position.set(0, 0.1, 0);
+            const bottomLine = new THREE.Mesh(new THREE.BoxGeometry(w, 0.1, d + 0.2), bottomNeon);
+            bottomLine.position.set(0, 0.05, 0);
             group.add(bottomLine);
 
             group.position.set(x, 0, z);
             group.rotation.y = rotY;
             scene.add(group);
+            
+            return group;
         }
 
-        createWall(WIDTH, 3, 1.2, 0, HEIGHT/2);
-        createWall(WIDTH, 3, 1.2, 0, -HEIGHT/2);
-        createWall(1.2, 3, HEIGHT, -WIDTH/2, 0);
-        createWall(1.2, 3, HEIGHT, WIDTH/2, 0);
+        createWall(WIDTH, 4, 1.5, 0, HEIGHT/2);
+        createWall(WIDTH, 4, 1.5, 0, -HEIGHT/2);
+        createWall(1.5, 4, HEIGHT, -WIDTH/2, 0);
+        createWall(1.5, 4, HEIGHT, WIDTH/2, 0);
+
+        // ===== УГЛОВЫЕ СТОЛБЫ =====
+        function createCornerPillar(x, z) {
+            const group = new THREE.Group();
+            
+            // Основной столб
+            const pillarMat = new THREE.MeshStandardMaterial({
+                color: 0x111630,
+                metalness: 0.9,
+                roughness: 0.2,
+                emissive: 0x0a0f24,
+                emissiveIntensity: 0.3
+            });
+            const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 4.5, 12), pillarMat);
+            pillar.position.y = 2.25;
+            pillar.castShadow = true;
+            group.add(pillar);
+
+            // Неоновое кольцо сверху
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+            const ring = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.08, 8, 12), ringMat);
+            ring.position.y = 4.3;
+            ring.rotation.x = Math.PI / 2;
+            group.add(ring);
+
+            // Неоновое кольцо снизу
+            const ringBottom = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.08, 8, 12), 
+                new THREE.MeshBasicMaterial({ color: 0xff00aa }));
+            ringBottom.position.y = 0.2;
+            ringBottom.rotation.x = Math.PI / 2;
+            group.add(ringBottom);
+
+            // Светящаяся сфера на вершине
+            const sphereMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+            const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8), sphereMat);
+            sphere.position.y = 4.6;
+            group.add(sphere);
+
+            group.position.set(x, 0, z);
+            scene.add(group);
+        }
+
+        const cornerPositions = [
+            [-WIDTH/2, -HEIGHT/2], [WIDTH/2, -HEIGHT/2],
+            [-WIDTH/2, HEIGHT/2], [WIDTH/2, HEIGHT/2]
+        ];
+        cornerPositions.forEach(([x, z]) => createCornerPillar(x, z));
+
+        // ===== ДЕКОРАТИВНЫЕ ЭЛЕМЕНТЫ =====
+        // Светящиеся линии на полу
+        function createFloorLine(x1, z1, x2, z2, color = 0x00ffff, opacity = 0.1) {
+            const points = [
+                new THREE.Vector3(x1, 0.02, z1),
+                new THREE.Vector3(x2, 0.02, z2)
+            ];
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ 
+                color: color, 
+                transparent: true, 
+                opacity: opacity 
+            });
+            const line = new THREE.Line(geometry, material);
+            scene.add(line);
+        }
+
+        // Диагональные линии
+        createFloorLine(-WIDTH/2 + 2, -HEIGHT/2 + 2, WIDTH/2 - 2, HEIGHT/2 - 2, 0x00ffff, 0.08);
+        createFloorLine(WIDTH/2 - 2, -HEIGHT/2 + 2, -WIDTH/2 + 2, HEIGHT/2 - 2, 0xff00aa, 0.08);
+
+        // ===== ТРИБУНЫ =====
+        function createTribune(angle, radius, width, height, depth) {
+            const group = new THREE.Group();
+            
+            const mat = new THREE.MeshStandardMaterial({
+                color: 0x080b18,
+                roughness: 0.6,
+                metalness: 0.3,
+                emissive: 0x020408,
+                emissiveIntensity: 0.5
+            });
+            
+            // Основная трибуна
+            const tribune = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), mat);
+            tribune.position.y = height/2;
+            tribune.castShadow = true;
+            tribune.receiveShadow = true;
+            group.add(tribune);
+
+            // Неоновая подсветка трибуны
+            const neonMat = new THREE.MeshBasicMaterial({ 
+                color: Math.random() > 0.5 ? 0x00ffff : 0xff00aa,
+                transparent: true,
+                opacity: 0.3
+            });
+            const neonStrip = new THREE.Mesh(new THREE.BoxGeometry(width + 0.2, 0.05, depth + 0.2), neonMat);
+            neonStrip.position.y = height + 0.05;
+            group.add(neonStrip);
+
+            // Случайные светящиеся точки на трибунах
+            for (let i = 0; i < 8; i++) {
+                const dotMat = new THREE.MeshBasicMaterial({ 
+                    color: Math.random() > 0.5 ? 0x00ffff : 0xff00aa,
+                    transparent: true,
+                    opacity: 0.3 + Math.random() * 0.3
+                });
+                const dot = new THREE.Mesh(new THREE.SphereGeometry(0.1, 4, 4), dotMat);
+                dot.position.set(
+                    (Math.random() - 0.5) * width * 0.8,
+                    height * 0.5 + Math.random() * height * 0.3,
+                    (Math.random() - 0.5) * depth * 0.8
+                );
+                group.add(dot);
+            }
+
+            group.position.set(
+                Math.cos(angle) * radius,
+                0,
+                Math.sin(angle) * radius
+            );
+            group.rotation.y = -angle + Math.PI / 2;
+            scene.add(group);
+        }
+
+        // Размещаем трибуны по кругу
+        for (let i = 0; i < 16; i++) {
+            const angle = (i / 16) * Math.PI * 2;
+            const radius = Math.max(WIDTH, HEIGHT) * 0.7 + 8;
+            const width = 12 + Math.random() * 8;
+            const height = 4 + Math.random() * 8;
+            const depth = 8 + Math.random() * 6;
+            createTribune(angle, radius, width, height, depth);
+        }
+
+        // ===== СОЗДАНИЕ БАЙКА В ВИДЕ КОНУСА =====
+        function createBike(color) {
+            const group = new THREE.Group();
+            
+            // Основной корпус - вытянутый конус (как мотоцикл TRON)
+            const bodyMat = new THREE.MeshStandardMaterial({ 
+                color: color, 
+                metalness: 0.9, 
+                roughness: 0.1,
+                emissive: color,
+                emissiveIntensity: 0.4
+            });
+            
+            // Корпус - конус
+            const body = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.6, 8), bodyMat);
+            body.position.y = 0.3;
+            body.rotation.x = Math.PI / 2;
+            body.castShadow = true;
+            group.add(body);
+
+            // Передняя часть (сфера)
+            const noseMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                metalness: 0.9,
+                roughness: 0.1,
+                emissive: color,
+                emissiveIntensity: 0.5
+            });
+            const nose = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), noseMat);
+            nose.position.set(0, 0.3, 0.8);
+            group.add(nose);
+
+            // Задняя часть
+            const tailMat = new THREE.MeshStandardMaterial({
+                color: color,
+                metalness: 0.9,
+                roughness: 0.1,
+                emissive: color,
+                emissiveIntensity: 0.3
+            });
+            const tail = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.6, 6), tailMat);
+            tail.position.set(0, 0.3, -0.9);
+            tail.rotation.x = Math.PI / 2;
+            group.add(tail);
+
+            // Фара (свет)
+            const lightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const light = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 6), lightMat);
+            light.position.set(0, 0.4, 1.0);
+            group.add(light);
+
+            // Светящийся след
+            const glowMat = new THREE.MeshBasicMaterial({ 
+                color: color,
+                transparent: true,
+                opacity: 0.3
+            });
+            const glow = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.4, 0.3, 6), glowMat);
+            glow.position.set(0, 0.1, -1.0);
+            group.add(glow);
+
+            // Боковые панели (для стиля)
+            const panelMat = new THREE.MeshStandardMaterial({
+                color: 0x111630,
+                metalness: 0.9,
+                roughness: 0.2,
+                emissive: color,
+                emissiveIntensity: 0.1
+            });
+            for (let side of [-1, 1]) {
+                const panel = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.2, 0.8), panelMat);
+                panel.position.set(side * 0.45, 0.3, 0);
+                group.add(panel);
+            }
+
+            return group;
+        }
 
         // ===== ИГРОКИ =====
         const players = [
@@ -232,23 +488,36 @@
             }
         ];
 
+        // Создаем байки
+        players.forEach(p => {
+            p.mesh = createBike(p.color);
+            scene.add(p.mesh);
+            const pos = gridToScene(p.x, p.y);
+            p.mesh.position.set(pos.x, 0.15, pos.z);
+        });
+
+        // ===== СЛЕДЫ (ПУЛ ОБЪЕКТОВ) =====
         const trailPool = [];
 
-        function getTrailObject() {
+        function getTrailObject(color) {
             if (trailPool.length > 0) {
                 const obj = trailPool.pop();
                 obj.visible = true;
+                obj.material.color.setHex(color);
+                obj.material.emissive.setHex(color);
                 return obj;
             }
-            const geo = new THREE.BoxGeometry(0.8, 0.2, 0.8);
+            const geo = new THREE.BoxGeometry(CELL_SIZE, 0.15, CELL_SIZE);
             const mat = new THREE.MeshStandardMaterial({
                 metalness: 0.9,
                 roughness: 0.1,
                 transparent: true,
-                opacity: 0.7
+                opacity: 0.8,
+                emissiveIntensity: 0.6
             });
             const mesh = new THREE.Mesh(geo, mat);
-            mesh.position.y = 0.1;
+            mesh.position.y = 0.05;
+            mesh.receiveShadow = true;
             scene.add(mesh);
             return mesh;
         }
@@ -256,124 +525,6 @@
         function recycleTrailObject(obj) {
             obj.visible = false;
             trailPool.push(obj);
-        }
-
-        // ===== СОЗДАНИЕ ПРОСТЫХ БАЙКОВ (ЗАПАСНОЙ ВАРИАНТ) =====
-        function createSimpleBike(color) {
-            const group = new THREE.Group();
-            
-            const body = new THREE.Mesh(
-                new THREE.BoxGeometry(0.6, 0.4, 1.4),
-                new THREE.MeshStandardMaterial({ 
-                    color: color, 
-                    metalness: 0.9, 
-                    roughness: 0.1, 
-                    emissive: color, 
-                    emissiveIntensity: 0.3 
-                })
-            );
-            body.position.y = 0.3;
-            body.castShadow = true;
-            group.add(body);
-
-            const cockpit = new THREE.Mesh(
-                new THREE.SphereGeometry(0.25, 8, 8),
-                new THREE.MeshStandardMaterial({ 
-                    color: 0xffffff, 
-                    emissive: color, 
-                    emissiveIntensity: 0.5 
-                })
-            );
-            cockpit.position.set(0, 0.5, 0.3);
-            group.add(cockpit);
-
-            return group;
-        }
-
-        // ===== ЗАГРУЗКА FBX МОДЕЛИ =====
-        function loadModel() {
-            const loader = new THREE.FBXLoader();
-            const progressBar = document.getElementById('progressBar');
-            
-            loader.load(
-                'police_car.fbx',
-                (fbx) => {
-                    console.log('✅ Модель загружена!');
-                    modelLoaded = true;
-                    
-                    // Масштабируем модель
-                    fbx.scale.set(0.35, 0.35, 0.35);
-                    
-                    // Создаем копии для игроков
-                    const modelP1 = fbx.clone();
-                    const modelP2 = fbx.clone();
-                    
-                    // Меняем цвета (синий)
-                    modelP1.traverse((child) => {
-                        if (child.isMesh && child.material) {
-                            child.material.color.setHex(0x00ffff);
-                            child.material.emissive.setHex(0x00ffff);
-                            child.material.emissiveIntensity = 0.3;
-                        }
-                    });
-                    
-                    // Меняем цвета (оранжевый)
-                    modelP2.traverse((child) => {
-                        if (child.isMesh && child.material) {
-                            child.material.color.setHex(0xffaa00);
-                            child.material.emissive.setHex(0xffaa00);
-                            child.material.emissiveIntensity = 0.3;
-                        }
-                    });
-                    
-                    // Назначаем игрокам
-                    players[0].mesh = modelP1;
-                    players[1].mesh = modelP2;
-                    scene.add(modelP1);
-                    scene.add(modelP2);
-                    
-                    // Обновляем позиции
-                    updatePlayerPositions();
-                    
-                    // Скрываем загрузку и запускаем игру
-                    document.getElementById('loading').style.display = 'none';
-                    startGame();
-                },
-                (progress) => {
-                    const percent = Math.round((progress.loaded / progress.total) * 100);
-                    progressBar.style.width = percent + '%';
-                },
-                (error) => {
-                    console.warn('⚠️ Не удалось загрузить модель, используем простые байки:', error);
-                    createFallbackBikes();
-                }
-            );
-        }
-
-        function createFallbackBikes() {
-            players.forEach(p => {
-                const bike = createSimpleBike(p.color);
-                p.mesh = bike;
-                scene.add(bike);
-                const pos = gridToScene(p.x, p.y);
-                bike.position.set(pos.x, 0.2, pos.z);
-            });
-            document.getElementById('loading').style.display = 'none';
-            startGame();
-        }
-
-        function updatePlayerPositions() {
-            players.forEach((p) => {
-                if (p.mesh) {
-                    const pos = gridToScene(p.x, p.y);
-                    p.mesh.position.set(pos.x, 0.2, pos.z);
-                    
-                    if (p.dirX === 1) p.mesh.rotation.y = Math.PI / 2;
-                    else if (p.dirX === -1) p.mesh.rotation.y = -Math.PI / 2;
-                    else if (p.dirY === 1) p.mesh.rotation.y = 0;
-                    else if (p.dirY === -1) p.mesh.rotation.y = Math.PI;
-                }
-            });
         }
 
         // ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
@@ -385,7 +536,7 @@
             const div = document.getElementById('message');
             div.textContent = text;
             div.style.color = color;
-            div.style.textShadow = `0 0 30px ${color}, 0 0 60px ${color}`;
+            div.style.textShadow = `0 0 40px ${color}, 0 0 80px ${color}, 0 0 120px ${color}`;
             div.classList.add('show');
             clearTimeout(msgTimeout);
             msgTimeout = setTimeout(() => div.classList.remove('show'), duration);
@@ -451,7 +602,7 @@
                 let cx = simX, cy = simY;
                 let dx = d.dx, dy = d.dy;
                 
-                for (let i = 0; i < 10; i++) {
+                for (let i = 0; i < 12; i++) {
                     const nextDirs = [
                         { dx: dx, dy: dy },
                         { dx: dy, dy: dx },
@@ -474,11 +625,11 @@
                 }
 
                 const distToEnemy = Math.abs(cx - enemy.x) + Math.abs(cy - enemy.y);
-                score += steps * 15;
-                score += (30 - distToEnemy) * 2;
+                score += steps * 20;
+                score += (35 - distToEnemy) * 2;
                 
-                if (cx < 2 || cx > WIDTH - 2 || cy < 2 || cy > HEIGHT - 2) {
-                    score -= 10;
+                if (cx < 3 || cx > WIDTH - 3 || cy < 3 || cy > HEIGHT - 3) {
+                    score -= 15;
                 }
 
                 if (score > bestScore) {
@@ -511,11 +662,10 @@
                 p.trail.push({ x: p.x, y: p.y });
 
                 const pos = gridToScene(p.x, p.y);
-                const trailMesh = getTrailObject();
+                const trailMesh = getTrailObject(p.trailColor);
                 trailMesh.material.color.setHex(p.trailColor);
                 trailMesh.material.emissive.setHex(p.trailColor);
-                trailMesh.material.emissiveIntensity = 0.6;
-                trailMesh.position.set(pos.x, 0.1, pos.z);
+                trailMesh.position.set(pos.x, 0.05, pos.z);
                 p.trailMeshes.push(trailMesh);
 
                 if (p.trail.length > TRAIL_LENGTH) {
@@ -525,8 +675,9 @@
                 }
 
                 if (p.mesh) {
-                    p.mesh.position.set(pos.x, 0.2, pos.z);
+                    p.mesh.position.set(pos.x, 0.15, pos.z);
                     
+                    // Поворот байка
                     if (p.dirX === 1) p.mesh.rotation.y = Math.PI / 2;
                     else if (p.dirX === -1) p.mesh.rotation.y = -Math.PI / 2;
                     else if (p.dirY === 1) p.mesh.rotation.y = 0;
@@ -601,9 +752,11 @@
                 showMessage(`🏆 ${winner.name} ПОБЕДИЛ!`, color, 2500);
                 if (winner.mesh) {
                     winner.mesh.traverse((child) => {
-                        if (child.isMesh && child.material) {
-                            child.material.emissiveIntensity = 2;
-                            setTimeout(() => { child.material.emissiveIntensity = 0.3; }, 1000);
+                        if (child.isMesh && child.material && child.material.emissive) {
+                            child.material.emissiveIntensity = 3;
+                            setTimeout(() => { 
+                                child.material.emissiveIntensity = 0.4; 
+                            }, 1000);
                         }
                     });
                 }
@@ -634,8 +787,17 @@
             players[1].dirX = -1;
             players[1].dirY = 0;
 
-            // Обновляем позиции моделей
-            updatePlayerPositions();
+            // Обновляем позиции
+            players.forEach(p => {
+                const pos = gridToScene(p.x, p.y);
+                if (p.mesh) {
+                    p.mesh.position.set(pos.x, 0.15, pos.z);
+                    if (p.dirX === 1) p.mesh.rotation.y = Math.PI / 2;
+                    else if (p.dirX === -1) p.mesh.rotation.y = -Math.PI / 2;
+                    else if (p.dirY === 1) p.mesh.rotation.y = 0;
+                    else if (p.dirY === -1) p.mesh.rotation.y = Math.PI;
+                }
+            });
 
             gameActive = true;
             roundCount++;
@@ -707,10 +869,16 @@
             requestAnimationFrame(animate);
             
             const time = Date.now() * 0.001;
+            
+            // Анимация неоновых элементов
             scene.children.forEach(child => {
-                if (child.isMesh && child.material && child.material.color && 
-                    child.material.color.getHex() === 0x00ffff) {
-                    child.material.opacity = 0.7 + Math.sin(time + child.position.x) * 0.3;
+                if (child.isMesh && child.material && child.material.color) {
+                    if (child.material.color.getHex() === 0x00ffff && child.material.opacity !== undefined) {
+                        child.material.opacity = 0.6 + Math.sin(time * 2 + child.position.x + child.position.z) * 0.3;
+                    }
+                    if (child.material.color.getHex() === 0xff00aa && child.material.opacity !== undefined) {
+                        child.material.opacity = 0.6 + Math.sin(time * 2.5 + child.position.x - child.position.z) * 0.3;
+                    }
                 }
             });
 
@@ -724,18 +892,19 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // ===== ЗАПУСК ИГРЫ =====
+        // ===== ЗАПУСК =====
         function startGame() {
+            document.getElementById('loading').style.display = 'none';
             if (gameInterval) clearInterval(gameInterval);
             gameInterval = setInterval(updateGame, 50);
             gameActive = true;
-            console.log('🎮 TRON 3D с моделью police_car.fbx!');
-            console.log('🚨 Управление: ↑↓←→ / WASD');
+            console.log('🎮 TRON 3D: Кибер Арена запущена!');
+            console.log('🏍️ Управление: ↑↓←→ / WASD');
+            console.log('⚡ Схватка началась!');
         }
 
-        // ===== СТАРТ =====
-        // Пытаемся загрузить модель, если не получится - создаем простые байки
-        loadModel();
+        // Стартуем через секунду для загрузки
+        setTimeout(startGame, 1000);
         animate();
     </script>
 </body>
