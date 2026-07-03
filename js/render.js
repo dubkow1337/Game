@@ -1,4 +1,4 @@
-const scene = new THREE.Scene();
+const scene = new THREE.Scene(); 
 scene.background = new THREE.Color(0x000000);
 // УБИРАЕМ ТУМАН - фон будет четким до самого края
 // scene.fog = ... (удалено)
