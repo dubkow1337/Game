@@ -1,8 +1,8 @@
 // ============================================
 // render.js - 3D Арена для TRON игры
-// Версия: 8.1 (Увеличенная модель мотоцикла)
+// Версия: 8.2 (Цвета, поворот, размер)
 // ============================================
- 
+
 // ============================================
 // 1. КОНФИГУРАЦИЯ АРЕНЫ
 // ============================================
@@ -27,7 +27,7 @@ const RENDER_CONFIG = {
         center: 0xffffff
     },
     bikeModelPath: 'assets/images/QOZKQ6KP0QTLLC8KUELTN3IVY.glb',
-    bikeScale: 2.5  // ← УВЕЛИЧИЛИ В 2.5 РАЗА!
+    bikeScale: 1.8  // ← УМЕНЬШИЛИ С 2.5 ДО 1.8
 };
 
 const ARENA_W = RENDER_CONFIG.width;
@@ -114,7 +114,7 @@ function loadBikeModel() {
 }
 
 // ============================================
-// 6. ПРИМЕНЕНИЕ МОДЕЛИ К ИГРОКАМ (С УВЕЛИЧЕННЫМ РАЗМЕРОМ)
+// 6. ПРИМЕНЕНИЕ МОДЕЛИ К ИГРОКАМ
 // ============================================
 function applyBikeModelsToPlayers() {
     if (!bikeModelLoaded || !bikeModel) {
@@ -136,27 +136,38 @@ function applyBikeModelsToPlayers() {
         
         const model = bikeModel.clone();
         
-        // 🔥 УВЕЛИЧЕННЫЙ МАСШТАБ В 2.5 РАЗА 🔥
+        // ============================================
+        // 1️⃣ МАСШТАБ (уменьшен с 2.5 до 1.8)
+        // ============================================
         const scale = RENDER_CONFIG.bikeScale;
         model.scale.set(scale, scale, scale);
         
-        // Меняем цвет
+        // ============================================
+        // 2️⃣ ПОВОРОТ МОДЕЛИ НА 90° ВПРАВО (один раз)
+        // ============================================
+        model.rotation.y = Math.PI / 2;  // Поворот на 90 градусов
+        
+        // ============================================
+        // 3️⃣ ЦВЕТА ДЛЯ КАЖДОГО ИГРОКА
+        // ============================================
         const color = index === 0 ? RENDER_CONFIG.colors.blue : RENDER_CONFIG.colors.orange;
+        const emissiveColor = index === 0 ? RENDER_CONFIG.colors.blueGlow : RENDER_CONFIG.colors.orangeGlow;
+        
         model.traverse((child) => {
             if (child.isMesh && child.material) {
                 if (Array.isArray(child.material)) {
                     child.material.forEach(mat => {
                         mat.color.setHex(color);
                         if (mat.emissive) {
-                            mat.emissive.setHex(color);
-                            mat.emissiveIntensity = 0.3;
+                            mat.emissive.setHex(emissiveColor);
+                            mat.emissiveIntensity = 0.4;
                         }
                     });
                 } else {
                     child.material.color.setHex(color);
                     if (child.material.emissive) {
-                        child.material.emissive.setHex(color);
-                        child.material.emissiveIntensity = 0.3;
+                        child.material.emissive.setHex(emissiveColor);
+                        child.material.emissiveIntensity = 0.4;
                     }
                 }
             }
@@ -169,7 +180,7 @@ function applyBikeModelsToPlayers() {
         model.position.set(pos.x, 0.2, pos.z);
         updateBikeRotation(player);
         
-        console.log(`✅ Модель мотоцикла (масштаб ${scale}x) применена к игроку ${index + 1}`);
+        console.log(`✅ Модель мотоцикла (масштаб ${scale}x, цвет: ${index === 0 ? 'СИНИЙ' : 'ОРАНЖЕВЫЙ'}) применена к игроку ${index + 1}`);
     });
 }
 
@@ -200,8 +211,8 @@ function createFallbackBikes() {
             emissive: color,
             emissiveIntensity: 0.3
         });
-        const body = new THREE.Mesh(new THREE.ConeGeometry(0.8, 2.5, 8), bodyMat);
-        body.position.y = 0.5;
+        const body = new THREE.Mesh(new THREE.ConeGeometry(0.6, 2.0, 8), bodyMat);
+        body.position.y = 0.4;
         body.rotation.x = Math.PI / 2;
         body.castShadow = true;
         group.add(body);
@@ -213,8 +224,8 @@ function createFallbackBikes() {
             emissive: color,
             emissiveIntensity: 0.5
         });
-        const nose = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), noseMat);
-        nose.position.set(0, 0.5, 1.2);
+        const nose = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), noseMat);
+        nose.position.set(0, 0.4, 1.0);
         group.add(nose);
         
         player.mesh = group;
@@ -227,15 +238,18 @@ function createFallbackBikes() {
 }
 
 // ============================================
-// 8. ПОВОРОТ БАЙКА
+// 8. ПОВОРОТ БАЙКА В НАПРАВЛЕНИИ ДВИЖЕНИЯ
 // ============================================
 function updateBikeRotation(player) {
     if (!player || !player.mesh) return;
     
-    if (player.dirX === 1) player.mesh.rotation.y = Math.PI / 2;
-    else if (player.dirX === -1) player.mesh.rotation.y = -Math.PI / 2;
-    else if (player.dirY === 1) player.mesh.rotation.y = 0;
-    else if (player.dirY === -1) player.mesh.rotation.y = Math.PI;
+    // Учитываем базовый поворот модели (Math.PI / 2)
+    const baseRotation = Math.PI / 2;
+    
+    if (player.dirX === 1) player.mesh.rotation.y = baseRotation + Math.PI / 2;
+    else if (player.dirX === -1) player.mesh.rotation.y = baseRotation - Math.PI / 2;
+    else if (player.dirY === 1) player.mesh.rotation.y = baseRotation + 0;
+    else if (player.dirY === -1) player.mesh.rotation.y = baseRotation + Math.PI;
 }
 
 // ============================================
@@ -783,6 +797,6 @@ window.Render = {
 
 console.log('🏟️ Render.js загружен');
 console.log('📐 Квадратная арена:', ARENA_W, 'x', ARENA_H);
-console.log('🔵 СИНЯЯ половина (левая) | 🟠 ОРАНЖЕВАЯ половина (правая)');
-console.log(`🏍️ Модель мотоцикла (масштаб ${RENDER_CONFIG.bikeScale}x)`);
+console.log('🔵 СИНИЙ байк (игрок 1) | 🟠 ОРАНЖЕВЫЙ байк (игрок 2)');
+console.log(`🏍️ Модель мотоцикла (масштаб ${RENDER_CONFIG.bikeScale}x, поворот 90°)`);
 console.log('🌐 scene, camera, renderer доступны глобально');
