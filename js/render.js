@@ -1,8 +1,8 @@
 // ============================================
 // render.js - 3D Арена для TRON игры
-// Версия: 7.3 (Полная рабочая сборка)
+// Версия: 7.1 (С фоном)
 // ============================================
-    
+ 
 // ============================================
 // 1. КОНФИГУРАЦИЯ АРЕНЫ
 // ============================================
@@ -84,18 +84,18 @@ function setupLighting() {
     dirLight.shadow.camera.bottom = -50;
     scene.add(dirLight);
 
-    const blueLight = new THREE.DirectionalLight(RENDER_CONFIG.colors.blue, 0.8);
+    const blueLight = new THREE.DirectionalLight(0x00ccff, 0.8);
     blueLight.position.set(-40, 30, 0);
     scene.add(blueLight);
 
-    const orangeLight = new THREE.DirectionalLight(RENDER_CONFIG.colors.orange, 0.8);
+    const orangeLight = new THREE.DirectionalLight(0xff6600, 0.8);
     orangeLight.position.set(40, 30, 0);
     scene.add(orangeLight);
 }
 setupLighting();
 
 // ============================================
-// 6. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ И ГЕОМЕТРИЯ
+// 6. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 // ============================================
 function createRoundedRectShape(w, h, r) {
     const shape = new THREE.Shape();
@@ -115,10 +115,16 @@ function createRoundedRectShape(w, h, r) {
     return shape;
 }
 
+function getRoundedRectPoints(w, h, r, segments = 60) {
+    const shape = createRoundedRectShape(w, h, r);
+    return shape.getPoints(segments);
+}
+
 // ============================================
 // 7. ЗАДНИЙ ФОН (ТЕКСТУРА + ЗВЁЗДЫ)
 // ============================================
 function setupBackground() {
+    // Загрузка текстуры фона
     const textureLoader = new THREE.TextureLoader();
     textureLoader.load(
         'assets/images/bg.png',
@@ -129,10 +135,12 @@ function setupBackground() {
         undefined,
         (error) => {
             console.warn('⚠️ Фон не загружен, используется стандартный:', error);
+            // Запасной вариант - цветной фон
             scene.background = new THREE.Color(0x050510);
         }
     );
 
+    // Звёзды (дополнительный слой)
     const starsGeometry = new THREE.BufferGeometry();
     const starsCount = 2000;
     const positions = new Float32Array(starsCount * 3);
@@ -197,6 +205,7 @@ function createFloor() {
     floor.receiveShadow = true;
     floor.position.y = 0;
     scene.add(floor);
+
     return floor;
 }
 const floor = createFloor();
@@ -208,30 +217,32 @@ function createGrid() {
     const gridGroup = new THREE.Group();
 
     // СИНЯЯ сетка (левая половина)
-    const gridLeft = new THREE.GridHelper(
+    const gridLeftMat = new THREE.GridHelper(
         ARENA_PLAY_W / 2,
         RENDER_CONFIG.gridDivisions,
         RENDER_CONFIG.colors.blue,
         RENDER_CONFIG.colors.blueDark
     );
-    gridLeft.position.set(-ARENA_PLAY_W / 4, 0.06, 0);
-    gridLeft.scale.z = ARENA_PLAY_H / (ARENA_PLAY_W / 2);
-    gridLeft.material.transparent = true;
-    gridLeft.material.opacity = 0.5;
-    gridGroup.add(gridLeft);
+    gridLeftMat.position.set(-ARENA_PLAY_W / 4, 0.06, 0);
+    gridLeftMat.scale.z = ARENA_PLAY_H / (ARENA_PLAY_W / 2);
+    gridLeftMat.material.transparent = true;
+    gridLeftMat.material.opacity = 0.6;
+    gridLeftMat.material.color.setHex(RENDER_CONFIG.colors.blue);
+    gridGroup.add(gridLeftMat);
 
     // ОРАНЖЕВАЯ сетка (правая половина)
-    const gridRight = new THREE.GridHelper(
+    const gridRightMat = new THREE.GridHelper(
         ARENA_PLAY_W / 2,
         RENDER_CONFIG.gridDivisions,
         RENDER_CONFIG.colors.orange,
         RENDER_CONFIG.colors.orangeDark
     );
-    gridRight.position.set(ARENA_PLAY_W / 4, 0.06, 0);
-    gridRight.scale.z = ARENA_PLAY_H / (ARENA_PLAY_W / 2);
-    gridRight.material.transparent = true;
-    gridRight.material.opacity = 0.5;
-    gridGroup.add(gridRight);
+    gridRightMat.position.set(ARENA_PLAY_W / 4, 0.06, 0);
+    gridRightMat.scale.z = ARENA_PLAY_H / (ARENA_PLAY_W / 2);
+    gridRightMat.material.transparent = true;
+    gridRightMat.material.opacity = 0.6;
+    gridRightMat.material.color.setHex(RENDER_CONFIG.colors.orange);
+    gridGroup.add(gridRightMat);
 
     // Центральная линия
     const centerPoints = [
@@ -253,85 +264,156 @@ function createGrid() {
 const gridGroup = createGrid();
 
 // ============================================
-// 10. ИСТИННЫЙ ЗАКРУГЛЕННЫЙ ЗАБОР С ЦВЕТОВЫМ РАЗДЕЛЕНИЕМ
+// 10. ЗАБОР (СИНЯЯ И ОРАНЖЕВАЯ ПОЛОВИНЫ)
 // ============================================
 function createFenceWalls() {
     const fenceHeight = RENDER_CONFIG.fenceHeight;
+    const halfW = ARENA_PLAY_W / 2;
+    const halfH = ARENA_PLAY_H / 2;
     const thickness = RENDER_CONFIG.fenceThickness;
-    
-    const shape = createRoundedRectShape(ARENA_PLAY_W, ARENA_PLAY_H, ARENA_RADIUS);
-    const points = shape.getPoints(80);
-    const edge3DPoints = points.map(p => new THREE.Vector3(p.x, 0, -p.y));
 
+    // ===== СИНЯЯ ПОЛОВИНА (левая) =====
     const blueMat = new THREE.MeshPhysicalMaterial({
         color: RENDER_CONFIG.colors.blue,
         emissive: RENDER_CONFIG.colors.blueGlow,
-        emissiveIntensity: 0.4,
+        emissiveIntensity: 0.3,
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.6,
         roughness: 0.1,
-        metalness: 0.9,
-        side: THREE.DoubleSide
+        metalness: 0.95,
+        side: THREE.DoubleSide,
+        clearcoat: 0.8,
+        clearcoatRoughness: 0.1,
+        envMapIntensity: 1.0
     });
 
+    // ===== ОРАНЖЕВАЯ ПОЛОВИНА (правая) =====
     const orangeMat = new THREE.MeshPhysicalMaterial({
         color: RENDER_CONFIG.colors.orange,
         emissive: RENDER_CONFIG.colors.orangeGlow,
-        emissiveIntensity: 0.4,
+        emissiveIntensity: 0.3,
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.6,
         roughness: 0.1,
-        metalness: 0.9,
-        side: THREE.DoubleSide
+        metalness: 0.95,
+        side: THREE.DoubleSide,
+        clearcoat: 0.8,
+        clearcoatRoughness: 0.1,
+        envMapIntensity: 1.0
     });
 
-    // Настоящее поактное построение скругленного забора
-    for (let i = 0; i < edge3DPoints.length; i++) {
-        const p1 = edge3DPoints[i];
-        const p2 = edge3DPoints[(i + 1) % edge3DPoints.length];
-        
-        const distance = p1.distanceTo(p2);
-        const boxGeo = new THREE.BoxGeometry(thickness, fenceHeight, distance + 0.1);
-        
-        const midX = (p1.x + p2.x) / 2;
-        const currentMat = (midX <= 0.1) ? blueMat : orangeMat;
+    // ---- ВЕРХНЯЯ СТЕНА (синяя слева, оранжевая справа) ----
+    const topWallLeft = new THREE.Mesh(
+        new THREE.BoxGeometry(halfW - 0.5, fenceHeight, thickness),
+        blueMat
+    );
+    topWallLeft.position.set(-halfW / 2, fenceHeight / 2, halfH);
+    topWallLeft.castShadow = true;
+    topWallLeft.receiveShadow = true;
+    scene.add(topWallLeft);
 
-        const segment = new THREE.Mesh(boxGeo, currentMat);
-        segment.position.set((p1.x + p2.x) / 2, fenceHeight / 2, (p1.z + p2.z) / 2);
-        segment.lookAt(p2);
-        
-        segment.castShadow = true;
-        segment.receiveShadow = true;
-        scene.add(segment);
-    }
+    const topWallRight = new THREE.Mesh(
+        new THREE.BoxGeometry(halfW - 0.5, fenceHeight, thickness),
+        orangeMat
+    );
+    topWallRight.position.set(halfW / 2, fenceHeight / 2, halfH);
+    topWallRight.castShadow = true;
+    topWallRight.receiveShadow = true;
+    scene.add(topWallRight);
+
+    // ---- НИЖНЯЯ СТЕНА (синяя слева, оранжевая справа) ----
+    const bottomWallLeft = new THREE.Mesh(
+        new THREE.BoxGeometry(halfW - 0.5, fenceHeight, thickness),
+        blueMat
+    );
+    bottomWallLeft.position.set(-halfW / 2, fenceHeight / 2, -halfH);
+    bottomWallLeft.castShadow = true;
+    bottomWallLeft.receiveShadow = true;
+    scene.add(bottomWallLeft);
+
+    const bottomWallRight = new THREE.Mesh(
+        new THREE.BoxGeometry(halfW - 0.5, fenceHeight, thickness),
+        orangeMat
+    );
+    bottomWallRight.position.set(halfW / 2, fenceHeight / 2, -halfH);
+    bottomWallRight.castShadow = true;
+    bottomWallRight.receiveShadow = true;
+    scene.add(bottomWallRight);
+
+    // ---- ЛЕВАЯ СТЕНА (полностью синяя) ----
+    const leftWall = new THREE.Mesh(
+        new THREE.BoxGeometry(thickness, fenceHeight, ARENA_PLAY_H - 1),
+        blueMat
+    );
+    leftWall.position.set(-halfW, fenceHeight / 2, 0);
+    leftWall.castShadow = true;
+    leftWall.receiveShadow = true;
+    scene.add(leftWall);
+
+    // ---- ПРАВАЯ СТЕНА (полностью оранжевая) ----
+    const rightWall = new THREE.Mesh(
+        new THREE.BoxGeometry(thickness, fenceHeight, ARENA_PLAY_H - 1),
+        orangeMat
+    );
+    rightWall.position.set(halfW, fenceHeight / 2, 0);
+    rightWall.castShadow = true;
+    rightWall.receiveShadow = true;
+    scene.add(rightWall);
 
     // ============================================
     // 11. НЕОНОВЫЙ КАНТ ПО ВЕРХУ ЗАБОРА
     // ============================================
-    const neonPoints = shape.getPoints(120).map(p => 
-        new THREE.Vector3(p.x, fenceHeight - 0.05, -p.y)
-    );
+    function createNeonEdge() {
+        const points = getRoundedRectPoints(
+            ARENA_PLAY_W - 0.3,
+            ARENA_PLAY_H - 0.3,
+            ARENA_RADIUS - 0.2,
+            60
+        );
 
-    const leftNeonPoints = neonPoints.filter(p => p.x <= 0.05);
-    const rightNeonPoints = neonPoints.filter(p => p.x >= -0.05);
+        const edgePoints = points.map(p => 
+            new THREE.Vector3(p.x, RENDER_CONFIG.fenceHeight - 0.1, -p.y)
+        );
 
-    const leftGeo = new THREE.BufferGeometry().setFromPoints(leftNeonPoints);
-    const leftMat = new THREE.LineBasicMaterial({ color: RENDER_CONFIG.colors.blue, transparent: true, opacity: 1.0 });
-    const leftLine = new THREE.Line(leftGeo, leftMat);
-    scene.add(leftLine);
+        const midIndex = Math.floor(edgePoints.length / 2);
+        const leftPoints = edgePoints.slice(0, midIndex);
+        const rightPoints = edgePoints.slice(midIndex);
 
-    const rightGeo = new THREE.BufferGeometry().setFromPoints(rightNeonPoints);
-    const rightMat = new THREE.LineBasicMaterial({ color: RENDER_CONFIG.colors.orange, transparent: true, opacity: 1.0 });
-    const rightLine = new THREE.Line(rightGeo, rightMat);
-    scene.add(rightLine);
+        const leftGeo = new THREE.BufferGeometry().setFromPoints(leftPoints);
+        const leftMat = new THREE.LineBasicMaterial({
+            color: RENDER_CONFIG.colors.blue,
+            transparent: true,
+            opacity: 1.0
+        });
+        const leftLine = new THREE.Line(leftGeo, leftMat);
+        scene.add(leftLine);
 
-    const bottomPoints = shape.getPoints(100).map(p => new THREE.Vector3(p.x, 0.05, -p.y));
-    const bottomGeo = new THREE.BufferGeometry().setFromPoints(bottomPoints);
-    const bottomMat = new THREE.LineBasicMaterial({ color: RENDER_CONFIG.colors.pink, transparent: true, opacity: 0.6 });
-    const bottomLine = new THREE.Line(bottomGeo, bottomMat);
-    scene.add(bottomLine);
+        const rightGeo = new THREE.BufferGeometry().setFromPoints(rightPoints);
+        const rightMat = new THREE.LineBasicMaterial({
+            color: RENDER_CONFIG.colors.orange,
+            transparent: true,
+            opacity: 1.0
+        });
+        const rightLine = new THREE.Line(rightGeo, rightMat);
+        scene.add(rightLine);
 
-    window._neonEdges = { leftLine, rightLine, bottomLine };
+        const bottomPoints = points.map(p => 
+            new THREE.Vector3(p.x, 0.05, -p.y)
+        );
+        const bottomGeo = new THREE.BufferGeometry().setFromPoints(bottomPoints);
+        const bottomMat = new THREE.LineBasicMaterial({
+            color: RENDER_CONFIG.colors.pink,
+            transparent: true,
+            opacity: 0.6
+        });
+        const bottomLine = new THREE.Line(bottomGeo, bottomMat);
+        scene.add(bottomLine);
+
+        return { leftLine, rightLine, bottomLine };
+    }
+    const neonEdges = createNeonEdge();
+
+    return { topWallLeft, topWallRight, bottomWallLeft, bottomWallRight, leftWall, rightWall };
 }
 const fenceWalls = createFenceWalls();
 
@@ -339,17 +421,16 @@ const fenceWalls = createFenceWalls();
 // 12. УГЛОВЫЕ СТОЛБЫ
 // ============================================
 function createCornerPillars() {
-    const offset = ARENA_PLAY_W / 2 - ARENA_RADIUS + 1.2;
     const corners = [
-        { x: -offset, z: -offset, color: RENDER_CONFIG.colors.blue },
-        { x: offset, z: -offset, color: RENDER_CONFIG.colors.orange },
-        { x: -offset, z: offset, color: RENDER_CONFIG.colors.blue },
-        { x: offset, z: offset, color: RENDER_CONFIG.colors.orange }
+        { x: -ARENA_PLAY_W / 2 + 0.5, z: -ARENA_PLAY_H / 2 + 0.5, color: RENDER_CONFIG.colors.blue },
+        { x: ARENA_PLAY_W / 2 - 0.5, z: -ARENA_PLAY_H / 2 + 0.5, color: RENDER_CONFIG.colors.orange },
+        { x: -ARENA_PLAY_W / 2 + 0.5, z: ARENA_PLAY_H / 2 - 0.5, color: RENDER_CONFIG.colors.blue },
+        { x: ARENA_PLAY_W / 2 - 0.5, z: ARENA_PLAY_H / 2 - 0.5, color: RENDER_CONFIG.colors.orange }
     ];
 
     const pillars = [];
 
-    corners.forEach((corner) => {
+    corners.forEach((corner, index) => {
         const group = new THREE.Group();
         const color = corner.color;
 
@@ -359,7 +440,8 @@ function createCornerPillars() {
             roughness: 0.05,
             emissive: color,
             emissiveIntensity: 0.5,
-            clearcoat: 0.8
+            clearcoat: 0.8,
+            clearcoatRoughness: 0.1
         });
         const pillar = new THREE.Mesh(
             new THREE.CylinderGeometry(0.6, 0.6, RENDER_CONFIG.fenceHeight, 16),
@@ -374,9 +456,14 @@ function createCornerPillars() {
             emissive: color,
             emissiveIntensity: 2.5,
             transparent: true,
-            opacity: 0.9
+            opacity: 0.9,
+            metalness: 0.9,
+            roughness: 0.1
         });
-        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.08, 8, 24), ringMat);
+        const ring = new THREE.Mesh(
+            new THREE.TorusGeometry(0.8, 0.08, 8, 24),
+            ringMat
+        );
         ring.position.y = RENDER_CONFIG.fenceHeight - 0.2;
         ring.rotation.x = Math.PI / 2;
         group.add(ring);
@@ -386,9 +473,14 @@ function createCornerPillars() {
             emissive: RENDER_CONFIG.colors.pink,
             emissiveIntensity: 2.0,
             transparent: true,
-            opacity: 0.7
+            opacity: 0.7,
+            metalness: 0.9,
+            roughness: 0.1
         });
-        const ringBottom = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.08, 8, 24), ringBottomMat);
+        const ringBottom = new THREE.Mesh(
+            new THREE.TorusGeometry(0.8, 0.08, 8, 24),
+            ringBottomMat
+        );
         ringBottom.position.y = 0.2;
         ringBottom.rotation.x = Math.PI / 2;
         group.add(ringBottom);
@@ -399,9 +491,14 @@ function createCornerPillars() {
             emissiveIntensity: 4.0,
             transparent: true,
             opacity: 0.9,
+            metalness: 0.0,
+            roughness: 0.0,
             clearcoat: 1
         });
-        const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), sphereMat);
+        const sphere = new THREE.Mesh(
+            new THREE.SphereGeometry(0.4, 16, 16),
+            sphereMat
+        );
         sphere.position.y = RENDER_CONFIG.fenceHeight + 0.3;
         group.add(sphere);
 
@@ -415,7 +512,7 @@ function createCornerPillars() {
 const pillars = createCornerPillars();
 
 // ============================================
-// 13. ИГРОКИ (БЕЗОПАСНАЯ ПРОВЕРКА И ОТРИСОВКА)
+// 13. ИГРОКИ (БЕЗОПАСНАЯ ПРОВЕРКА)
 // ============================================
 if (typeof players !== 'undefined' && Array.isArray(players)) {
     players.forEach(player => {
@@ -425,7 +522,7 @@ if (typeof players !== 'undefined' && Array.isArray(players)) {
         }
     });
 } else {
-    console.warn('⚠️ Игроки не найдены, модели будут добавлены ядром игры');
+    console.warn('⚠️ Игроки не найдены, модели не добавлены');
 }
 
 // ============================================
@@ -434,38 +531,46 @@ if (typeof players !== 'undefined' && Array.isArray(players)) {
 let time = 0;
 
 function animateNeon() {
-    time += 0.01;
+    time += 0.008;
 
+    // Анимация кантов
     const neonEdges = window._neonEdges || {};
-    if (neonEdges.leftLine && neonEdges.leftLine.material) {
-        neonEdges.leftLine.material.opacity = 0.75 + Math.sin(time * 2.5) * 0.25;
+    if (neonEdges.leftLine) {
+        neonEdges.leftLine.material.opacity = 0.7 + Math.sin(time * 1.5) * 0.3;
     }
-    if (neonEdges.rightLine && neonEdges.rightLine.material) {
-        neonEdges.rightLine.material.opacity = 0.75 + Math.sin(time * 2.5 + Math.PI) * 0.25;
+    if (neonEdges.rightLine) {
+        neonEdges.rightLine.material.opacity = 0.7 + Math.sin(time * 1.7 + 0.5) * 0.3;
     }
-    if (neonEdges.bottomLine && neonEdges.bottomLine.material) {
-        neonEdges.bottomLine.material.opacity = 0.4 + Math.sin(time * 1.8) * 0.2;
+    if (neonEdges.bottomLine) {
+        neonEdges.bottomLine.material.opacity = 0.4 + Math.sin(time * 2 + 1) * 0.2;
     }
 
+    // Анимация сетки
     if (gridGroup) {
         gridGroup.children.forEach(child => {
-            if (child.material) {
-                child.material.opacity = 0.45 + Math.sin(time * 1.5) * 0.15;
+            if (child.material && child.material.opacity !== undefined) {
+                if (child.material.color && child.material.color.getHex() === RENDER_CONFIG.colors.blue) {
+                    child.material.opacity = 0.4 + Math.sin(time * 1.2 + child.position.x) * 0.15;
+                }
+                if (child.material.color && child.material.color.getHex() === RENDER_CONFIG.colors.orange) {
+                    child.material.opacity = 0.4 + Math.sin(time * 1.4 + child.position.x) * 0.15;
+                }
             }
         });
     }
 
+    // Анимация столбов
     if (pillars) {
         pillars.forEach((pillar, index) => {
             pillar.children.forEach(child => {
                 if (child.isMesh && child.geometry.type === 'SphereGeometry') {
-                    child.position.y = RENDER_CONFIG.fenceHeight + 0.3 + Math.sin(time * 3 + index) * 0.08;
+                    child.position.y = RENDER_CONFIG.fenceHeight + 0.3 + Math.sin(time * 2 + index) * 0.1;
                     if (child.material) {
-                        child.material.emissiveIntensity = 3.5 + Math.sin(time * 4 + index) * 0.8;
+                        child.material.emissiveIntensity = 3 + Math.sin(time * 2.5 + index) * 1;
                     }
                 }
                 if (child.isMesh && child.geometry.type === 'TorusGeometry') {
-                    child.rotation.z = time * 0.2;
+                    child.rotation.z = Math.sin(time * 0.5 + index) * 0.1;
                 }
             });
         });
@@ -475,16 +580,6 @@ function animateNeon() {
 function animate() {
     requestAnimationFrame(animate);
     animateNeon();
-    
-    // Постоянно проверяем появление мотоциклов, чтобы они никогда не пропадали
-    if (typeof players !== 'undefined' && Array.isArray(players)) {
-        players.forEach(player => {
-            if (player && player.mesh && !scene.children.includes(player.mesh)) {
-                scene.add(player.mesh);
-            }
-        });
-    }
-    
     renderer.render(scene, camera);
 }
 animate();
@@ -512,8 +607,20 @@ window.Render = {
     camera: camera,
     renderer: renderer,
     config: RENDER_CONFIG,
-    addToScene: function(object) { if (object) scene.add(object); },
-    removeFromScene: function(object) { if (object) scene.remove(object); }
+    addToScene: function(object) {
+        if (object) {
+            scene.add(object);
+        }
+    },
+    removeFromScene: function(object) {
+        if (object) {
+            scene.remove(object);
+        }
+    }
 };
 
-console.log('🏟️ Render.js v7.3 успешно запущен.');
+console.log('🏟️ Render.js загружен');
+console.log('📐 Квадратная арена:', ARENA_W, 'x', ARENA_H);
+console.log('🔵 СИНЯЯ половина (левая) | 🟠 ОРАНЖЕВАЯ половина (правая)');
+console.log('💀 Стены = смерть');
+console.log('🌐 scene, camera, renderer доступны глобально');
