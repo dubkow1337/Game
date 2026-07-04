@@ -1,6 +1,6 @@
 // ============================================
 // render.js - 3D Арена для TRON игры
-// Версия: 7.2 (Оптимизированная скругленная арена)
+// Версия: 7.3 (Полная рабочая сборка)
 // ============================================
  
 // ============================================
@@ -257,90 +257,61 @@ const gridGroup = createGrid();
 // ============================================
 function createFenceWalls() {
     const fenceHeight = RENDER_CONFIG.fenceHeight;
-    const shape = createRoundedRectShape(ARENA_PLAY_W, ARENA_PLAY_H, ARENA_RADIUS);
+    const thickness = RENDER_CONFIG.fenceThickness;
     
-    // Получаем высокодетализированные точки закругленного контура (120 точек для плавности)
-    const points = shape.getPoints(120);
+    const shape = createRoundedRectShape(ARENA_PLAY_W, ARENA_PLAY_H, ARENA_RADIUS);
+    const points = shape.getPoints(80);
     const edge3DPoints = points.map(p => new THREE.Vector3(p.x, 0, -p.y));
 
-    // Массивы геометрий для разделения забора
-    const leftWallGeometries = [];
-    const rightWallGeometries = [];
-    const thickness = RENDER_CONFIG.fenceThickness;
-
-    // Проходим по точкам и строим сегменты забора, разделяя их по оси X
-    for (let i = 0; i < edge3DPoints.length; i++) {
-        const p1 = edge3DPoints[i];
-        const p2 = edge3DPoints[(i + 1) % edge3DPoints.length];
-        
-        // Вычисляем длину и угол сегмента
-        const distance = p1.distanceTo(p2);
-        const boxGeo = new THREE.BoxGeometry(thickness, fenceHeight, distance + 0.05);
-        
-        // Смещаем центр сегмента
-        const midPoint = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
-        boxGeo.translate(0, fenceHeight / 2, 0);
-
-        const segmentMesh = new THREE.Mesh(boxGeo);
-        segmentMesh.position.copy(midPoint);
-        segmentMesh.lookAt(p2);
-        segmentMesh.updateMatrix();
-
-        // Математическое разделение сегментов по X
-        if (midPoint.x <= 0.01) {
-            leftWallGeometries.push(boxGeo.clone().applyMatrix4(segmentMesh.matrix));
-        } else {
-            rightWallGeometries.push(boxGeo.clone().applyMatrix4(segmentMesh.matrix));
-        }
-    }
-
-    // Мерджим сегменты в две мастер-геометрии для производительности
-    const leftBufferGeo = THREE.BufferGeometryUtils.mergeGeometries(leftWallGeometries);
-    const rightBufferGeo = THREE.BufferGeometryUtils.mergeGeometries(rightWallGeometries);
-
-    // Материалы
     const blueMat = new THREE.MeshPhysicalMaterial({
         color: RENDER_CONFIG.colors.blue,
         emissive: RENDER_CONFIG.colors.blueGlow,
-        emissiveIntensity: 0.3,
+        emissiveIntensity: 0.4,
         transparent: true,
         opacity: 0.5,
         roughness: 0.1,
-        metalness: 0.95,
-        side: THREE.DoubleSide,
-        clearcoat: 0.8
+        metalness: 0.9,
+        side: THREE.DoubleSide
     });
 
     const orangeMat = new THREE.MeshPhysicalMaterial({
         color: RENDER_CONFIG.colors.orange,
         emissive: RENDER_CONFIG.colors.orangeGlow,
-        emissiveIntensity: 0.3,
+        emissiveIntensity: 0.4,
         transparent: true,
         opacity: 0.5,
         roughness: 0.1,
-        metalness: 0.95,
-        side: THREE.DoubleSide,
-        clearcoat: 0.8
+        metalness: 0.9,
+        side: THREE.DoubleSide
     });
 
-    const leftFenceMesh = new THREE.Mesh(leftBufferGeo, blueMat);
-    leftFenceMesh.castShadow = true;
-    leftFenceMesh.receiveShadow = true;
-    scene.add(leftFenceMesh);
+    // Настоящее поактное построение скругленного забора
+    for (let i = 0; i < edge3DPoints.length; i++) {
+        const p1 = edge3DPoints[i];
+        const p2 = edge3DPoints[(i + 1) % edge3DPoints.length];
+        
+        const distance = p1.distanceTo(p2);
+        const boxGeo = new THREE.BoxGeometry(thickness, fenceHeight, distance + 0.1);
+        
+        const midX = (p1.x + p2.x) / 2;
+        const currentMat = (midX <= 0.1) ? blueMat : orangeMat;
 
-    const rightFenceMesh = new THREE.Mesh(rightBufferGeo, orangeMat);
-    rightFenceMesh.castShadow = true;
-    rightFenceMesh.receiveShadow = true;
-    scene.add(rightFenceMesh);
+        const segment = new THREE.Mesh(boxGeo, currentMat);
+        segment.position.set((p1.x + p2.x) / 2, fenceHeight / 2, (p1.z + p2.z) / 2);
+        segment.lookAt(p2);
+        
+        segment.castShadow = true;
+        segment.receiveShadow = true;
+        scene.add(segment);
+    }
 
     // ============================================
-    // 11. НЕОНОВЫЙ КАНТ ПО ВЕРХУ ЗАБОРА (ИСПРАВЛЕНО)
+    // 11. НЕОНОВЫЙ КАНТ ПО ВЕРХУ ЗАБОРА
     // ============================================
-    const neonPoints = shape.getPoints(160).map(p => 
+    const neonPoints = shape.getPoints(120).map(p => 
         new THREE.Vector3(p.x, fenceHeight - 0.05, -p.y)
     );
 
-    // Строгое деление контура пополам по оси X для ровного неона
     const leftNeonPoints = neonPoints.filter(p => p.x <= 0.05);
     const rightNeonPoints = neonPoints.filter(p => p.x >= -0.05);
 
@@ -354,17 +325,13 @@ function createFenceWalls() {
     const rightLine = new THREE.Line(rightGeo, rightMat);
     scene.add(rightLine);
 
-    // Розовый нижний контур
     const bottomPoints = shape.getPoints(100).map(p => new THREE.Vector3(p.x, 0.05, -p.y));
     const bottomGeo = new THREE.BufferGeometry().setFromPoints(bottomPoints);
     const bottomMat = new THREE.LineBasicMaterial({ color: RENDER_CONFIG.colors.pink, transparent: true, opacity: 0.6 });
     const bottomLine = new THREE.Line(bottomGeo, bottomMat);
     scene.add(bottomLine);
 
-    // Фиксируем канты в глобальное окно для функции анимации
     window._neonEdges = { leftLine, rightLine, bottomLine };
-
-    return { leftFenceMesh, rightFenceMesh };
 }
 const fenceWalls = createFenceWalls();
 
@@ -372,7 +339,6 @@ const fenceWalls = createFenceWalls();
 // 12. УГЛОВЫЕ СТОЛБЫ
 // ============================================
 function createCornerPillars() {
-    // Координаты смещены с учетом закруглений радиуса
     const offset = ARENA_PLAY_W / 2 - ARENA_RADIUS + 1.2;
     const corners = [
         { x: -offset, z: -offset, color: RENDER_CONFIG.colors.blue },
@@ -470,7 +436,6 @@ let time = 0;
 function animateNeon() {
     time += 0.01;
 
-    // Исправлено: Качественное мерцание верхних неоновых линий контура
     const neonEdges = window._neonEdges || {};
     if (neonEdges.leftLine && neonEdges.leftLine.material) {
         neonEdges.leftLine.material.opacity = 0.75 + Math.sin(time * 2.5) * 0.25;
@@ -482,7 +447,6 @@ function animateNeon() {
         neonEdges.bottomLine.material.opacity = 0.4 + Math.sin(time * 1.8) * 0.2;
     }
 
-    // Анимация изменения прозрачности сетки под мотиками
     if (gridGroup) {
         gridGroup.children.forEach(child => {
             if (child.material) {
@@ -491,7 +455,6 @@ function animateNeon() {
         });
     }
 
-    // Анимация покачивания сфер и колец на столбах
     if (pillars) {
         pillars.forEach((pillar, index) => {
             pillar.children.forEach(child => {
@@ -502,7 +465,7 @@ function animateNeon() {
                     }
                 }
                 if (child.isMesh && child.geometry.type === 'TorusGeometry') {
-                    child.rotation.z = time * 0.2; // Добавлено футуристичное вращение колец вокруг столбов
+                    child.rotation.z = time * 0.2;
                 }
             });
         });
@@ -513,7 +476,7 @@ function animate() {
     requestAnimationFrame(animate);
     animateNeon();
     
-    // Постоянное удержание игроков в фокусе (если они динамически создаются игрой позже)
+    // Постоянно проверяем появление мотоциклов, чтобы они никогда не пропадали
     if (typeof players !== 'undefined' && Array.isArray(players)) {
         players.forEach(player => {
             if (player && player.mesh && !scene.children.includes(player.mesh)) {
@@ -553,4 +516,4 @@ window.Render = {
     removeFromScene: function(object) { if (object) scene.remove(object); }
 };
 
-console.log('🏟️ Render.js v7.2 успешно инициализирован.');
+console.log('🏟️ Render.js v7.3 успешно запущен.');
