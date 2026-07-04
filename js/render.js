@@ -1,6 +1,6 @@
 // ============================================
 // render.js - 3D Арена для TRON игры
-// Версия: 7.0 (Квадратное поле, разделённый забор)
+// Версия: 7.1 (С фоном)
 // ============================================
 
 // ============================================
@@ -8,7 +8,7 @@
 // ============================================
 const RENDER_CONFIG = {
     width: 70,
-    height: 70,  // КВАДРАТНОЕ ПОЛЕ!
+    height: 70,
     radius: 4,
     fenceHeight: 5,
     fenceThickness: 0.8,
@@ -121,11 +121,28 @@ function getRoundedRectPoints(w, h, r, segments = 60) {
 }
 
 // ============================================
-// 7. ФОН (ЗВЕЗДЫ)
+// 7. ЗАДНИЙ ФОН (ТЕКСТУРА + ЗВЁЗДЫ)
 // ============================================
 function setupBackground() {
+    // Загрузка текстуры фона
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load(
+        'assets/images/bg.png',
+        (texture) => {
+            scene.background = texture;
+            console.log('✅ Фон загружен!');
+        },
+        undefined,
+        (error) => {
+            console.warn('⚠️ Фон не загружен, используется стандартный:', error);
+            // Запасной вариант - цветной фон
+            scene.background = new THREE.Color(0x050510);
+        }
+    );
+
+    // Звёзды (дополнительный слой)
     const starsGeometry = new THREE.BufferGeometry();
-    const starsCount = 3000;
+    const starsCount = 2000;
     const positions = new Float32Array(starsCount * 3);
     const colors = new Float32Array(starsCount * 3);
 
@@ -150,10 +167,10 @@ function setupBackground() {
     starsGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     const starsMaterial = new THREE.PointsMaterial({
-        size: 0.8,
+        size: 0.6,
         vertexColors: true,
         transparent: true,
-        opacity: 0.9,
+        opacity: 0.7,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         sizeAttenuation: true
@@ -286,7 +303,6 @@ function createFenceWalls() {
     });
 
     // ---- ВЕРХНЯЯ СТЕНА (синяя слева, оранжевая справа) ----
-    // Левая половина верхней стены (синяя)
     const topWallLeft = new THREE.Mesh(
         new THREE.BoxGeometry(halfW - 0.5, fenceHeight, thickness),
         blueMat
@@ -296,7 +312,6 @@ function createFenceWalls() {
     topWallLeft.receiveShadow = true;
     scene.add(topWallLeft);
 
-    // Правая половина верхней стены (оранжевая)
     const topWallRight = new THREE.Mesh(
         new THREE.BoxGeometry(halfW - 0.5, fenceHeight, thickness),
         orangeMat
@@ -364,7 +379,6 @@ function createFenceWalls() {
         const leftPoints = edgePoints.slice(0, midIndex);
         const rightPoints = edgePoints.slice(midIndex);
 
-        // СИНИЙ кант (левая половина)
         const leftGeo = new THREE.BufferGeometry().setFromPoints(leftPoints);
         const leftMat = new THREE.LineBasicMaterial({
             color: RENDER_CONFIG.colors.blue,
@@ -374,7 +388,6 @@ function createFenceWalls() {
         const leftLine = new THREE.Line(leftGeo, leftMat);
         scene.add(leftLine);
 
-        // ОРАНЖЕВЫЙ кант (правая половина)
         const rightGeo = new THREE.BufferGeometry().setFromPoints(rightPoints);
         const rightMat = new THREE.LineBasicMaterial({
             color: RENDER_CONFIG.colors.orange,
@@ -384,7 +397,6 @@ function createFenceWalls() {
         const rightLine = new THREE.Line(rightGeo, rightMat);
         scene.add(rightLine);
 
-        // НИЖНИЙ кант (розовый)
         const bottomPoints = points.map(p => 
             new THREE.Vector3(p.x, 0.05, -p.y)
         );
