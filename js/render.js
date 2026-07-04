@@ -1,6 +1,6 @@
 // ============================================
 // render.js - 3D Арена для TRON игры
-// Версия: 8.0 (С 3D моделью мотоцикла)
+// Версия: 8.1 (Увеличенная модель мотоцикла)
 // ============================================
 
 // ============================================
@@ -26,7 +26,8 @@ const RENDER_CONFIG = {
         fence: 0x0d1b2a,
         center: 0xffffff
     },
-    bikeModelPath: 'assets/images/QOZKQ6KP0QTLLC8KUELTN3IVY.glb'
+    bikeModelPath: 'assets/images/QOZKQ6KP0QTLLC8KUELTN3IVY.glb',
+    bikeScale: 2.5  // ← УВЕЛИЧИЛИ В 2.5 РАЗА!
 };
 
 const ARENA_W = RENDER_CONFIG.width;
@@ -68,7 +69,6 @@ document.body.appendChild(renderer.domElement);
 // ============================================
 // 5. ЗАГРУЗЧИК GLB МОДЕЛИ
 // ============================================
-// Подключаем GLTFLoader
 const script = document.createElement('script');
 script.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js';
 document.head.appendChild(script);
@@ -83,7 +83,6 @@ function loadBikeModel() {
     
     console.log('🏍️ Загрузка модели мотоцикла...');
     
-    // Ждём пока загрузится GLTFLoader
     const checkLoader = setInterval(() => {
         if (typeof THREE.GLTFLoader !== 'undefined') {
             clearInterval(checkLoader);
@@ -96,12 +95,9 @@ function loadBikeModel() {
                     bikeModelLoaded = true;
                     bikeModelLoading = false;
                     console.log('✅ Модель мотоцикла загружена!');
-                    
-                    // Применяем модели к игрокам
                     applyBikeModelsToPlayers();
                 },
                 (progress) => {
-                    // Прогресс загрузки
                     const percent = Math.round((progress.loaded / progress.total) * 100);
                     if (percent % 20 === 0) {
                         console.log(`⏳ Загрузка модели: ${percent}%`);
@@ -110,7 +106,6 @@ function loadBikeModel() {
                 (error) => {
                     console.error('❌ Ошибка загрузки модели:', error);
                     bikeModelLoading = false;
-                    // Используем заглушку (стрелки)
                     createFallbackBikes();
                 }
             );
@@ -119,7 +114,7 @@ function loadBikeModel() {
 }
 
 // ============================================
-// 6. ПРИМЕНЕНИЕ МОДЕЛИ К ИГРОКАМ
+// 6. ПРИМЕНЕНИЕ МОДЕЛИ К ИГРОКАМ (С УВЕЛИЧЕННЫМ РАЗМЕРОМ)
 // ============================================
 function applyBikeModelsToPlayers() {
     if (!bikeModelLoaded || !bikeModel) {
@@ -135,18 +130,17 @@ function applyBikeModelsToPlayers() {
     players.forEach((player, index) => {
         if (!player) return;
         
-        // Удаляем старую модель (если была)
         if (player.mesh && player.mesh.parent) {
             scene.remove(player.mesh);
         }
         
-        // Создаём копию модели
         const model = bikeModel.clone();
         
-        // Масштабируем под размеры арены
-        model.scale.set(0.5, 0.5, 0.5);
+        // 🔥 УВЕЛИЧЕННЫЙ МАСШТАБ В 2.5 РАЗА 🔥
+        const scale = RENDER_CONFIG.bikeScale;
+        model.scale.set(scale, scale, scale);
         
-        // Меняем цвет в зависимости от игрока
+        // Меняем цвет
         const color = index === 0 ? RENDER_CONFIG.colors.blue : RENDER_CONFIG.colors.orange;
         model.traverse((child) => {
             if (child.isMesh && child.material) {
@@ -168,20 +162,14 @@ function applyBikeModelsToPlayers() {
             }
         });
         
-        // Сохраняем модель
         player.mesh = model;
-        
-        // Добавляем на сцену
         scene.add(model);
         
-        // Обновляем позицию
         const pos = Utils.gridToScene(player.x, player.y, ARENA_W, ARENA_H);
         model.position.set(pos.x, 0.2, pos.z);
-        
-        // Поворот
         updateBikeRotation(player);
         
-        console.log(`✅ Модель мотоцикла применена к игроку ${index + 1}`);
+        console.log(`✅ Модель мотоцикла (масштаб ${scale}x) применена к игроку ${index + 1}`);
     });
 }
 
@@ -205,7 +193,6 @@ function createFallbackBikes() {
         const color = index === 0 ? RENDER_CONFIG.colors.blue : RENDER_CONFIG.colors.orange;
         const group = new THREE.Group();
         
-        // Корпус - стрелка (конус)
         const bodyMat = new THREE.MeshPhysicalMaterial({
             color: color,
             metalness: 0.9,
@@ -213,13 +200,12 @@ function createFallbackBikes() {
             emissive: color,
             emissiveIntensity: 0.3
         });
-        const body = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.6, 8), bodyMat);
-        body.position.y = 0.3;
+        const body = new THREE.Mesh(new THREE.ConeGeometry(0.8, 2.5, 8), bodyMat);
+        body.position.y = 0.5;
         body.rotation.x = Math.PI / 2;
         body.castShadow = true;
         group.add(body);
         
-        // Нос
         const noseMat = new THREE.MeshPhysicalMaterial({
             color: 0xffffff,
             metalness: 0.9,
@@ -227,15 +213,15 @@ function createFallbackBikes() {
             emissive: color,
             emissiveIntensity: 0.5
         });
-        const nose = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), noseMat);
-        nose.position.set(0, 0.3, 0.8);
+        const nose = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), noseMat);
+        nose.position.set(0, 0.5, 1.2);
         group.add(nose);
         
         player.mesh = group;
         scene.add(group);
         
         const pos = Utils.gridToScene(player.x, player.y, ARENA_W, ARENA_H);
-        group.position.set(pos.x, 0.15, pos.z);
+        group.position.set(pos.x, 0.3, pos.z);
         updateBikeRotation(player);
     });
 }
@@ -332,7 +318,6 @@ function setupBackground() {
         }
     );
 
-    // Звёзды
     const starsGeometry = new THREE.BufferGeometry();
     const starsCount = 2000;
     const positions = new Float32Array(starsCount * 3);
@@ -489,7 +474,6 @@ function createFenceWalls() {
         envMapIntensity: 1.0
     });
 
-    // Верхняя стена
     const topWallLeft = new THREE.Mesh(
         new THREE.BoxGeometry(halfW - 0.5, fenceHeight, thickness),
         blueMat
@@ -508,7 +492,6 @@ function createFenceWalls() {
     topWallRight.receiveShadow = true;
     scene.add(topWallRight);
 
-    // Нижняя стена
     const bottomWallLeft = new THREE.Mesh(
         new THREE.BoxGeometry(halfW - 0.5, fenceHeight, thickness),
         blueMat
@@ -527,7 +510,6 @@ function createFenceWalls() {
     bottomWallRight.receiveShadow = true;
     scene.add(bottomWallRight);
 
-    // Левая стена
     const leftWall = new THREE.Mesh(
         new THREE.BoxGeometry(thickness, fenceHeight, ARENA_PLAY_H - 1),
         blueMat
@@ -537,7 +519,6 @@ function createFenceWalls() {
     leftWall.receiveShadow = true;
     scene.add(leftWall);
 
-    // Правая стена
     const rightWall = new THREE.Mesh(
         new THREE.BoxGeometry(thickness, fenceHeight, ARENA_PLAY_H - 1),
         orangeMat
@@ -547,7 +528,6 @@ function createFenceWalls() {
     rightWall.receiveShadow = true;
     scene.add(rightWall);
 
-    // Неоновый кант
     function createNeonEdge() {
         const points = getRoundedRectPoints(
             ARENA_PLAY_W - 0.3,
@@ -699,12 +679,9 @@ const pillars = createCornerPillars();
 // ============================================
 // 16. ИГРОКИ И ЗАГРУЗКА МОДЕЛИ
 // ============================================
-// Сначала создаём игроков с заглушками, потом загружаем модель
 window.players = window.players || [];
 
-// Если игроки уже есть - применяем модель
 if (typeof players !== 'undefined' && Array.isArray(players) && players.length > 0) {
-    // Загружаем модель
     loadBikeModel();
 } else {
     console.warn('⚠️ Игроки не найдены, модель не загружена');
@@ -718,7 +695,6 @@ let time = 0;
 function animateNeon() {
     time += 0.008;
 
-    // Анимация кантов
     const neonEdges = window._neonEdges || {};
     if (neonEdges.leftLine) {
         neonEdges.leftLine.material.opacity = 0.7 + Math.sin(time * 1.5) * 0.3;
@@ -808,5 +784,5 @@ window.Render = {
 console.log('🏟️ Render.js загружен');
 console.log('📐 Квадратная арена:', ARENA_W, 'x', ARENA_H);
 console.log('🔵 СИНЯЯ половина (левая) | 🟠 ОРАНЖЕВАЯ половина (правая)');
-console.log('🏍️ Загрузка модели мотоцикла...');
+console.log(`🏍️ Модель мотоцикла (масштаб ${RENDER_CONFIG.bikeScale}x)`);
 console.log('🌐 scene, camera, renderer доступны глобально');
