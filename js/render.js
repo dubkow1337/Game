@@ -1,8 +1,8 @@
 // ============================================
 // render.js - 3D Арена для TRON игры
-// Версия: 8.2 (Цвета, поворот, размер)
+// Версия: 8.3 (Оптимизированный, 60 FPS)
 // ============================================
- 
+
 // ============================================
 // 1. КОНФИГУРАЦИЯ АРЕНЫ
 // ============================================
@@ -27,7 +27,7 @@ const RENDER_CONFIG = {
         center: 0xffffff
     },
     bikeModelPath: 'assets/images/QOZKQ6KP0QTLLC8KUELTN3IVY.glb',
-    bikeScale: 1.8  // ← УМЕНЬШИЛИ С 2.5 ДО 1.8
+    bikeScale: 1.8
 };
 
 const ARENA_W = RENDER_CONFIG.width;
@@ -51,7 +51,7 @@ camera.position.set(RENDER_CONFIG.cameraPos.x, RENDER_CONFIG.cameraPos.y, RENDER
 camera.lookAt(0, 0, 0);
 
 // ============================================
-// 4. РЕНДЕР
+// 4. РЕНДЕР (ОПТИМИЗИРОВАННЫЙ)
 // ============================================
 const renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -64,6 +64,7 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.5;
+renderer.setAnimationLoop(null); // Отключаем встроенный цикл
 document.body.appendChild(renderer.domElement);
 
 // ============================================
@@ -97,12 +98,7 @@ function loadBikeModel() {
                     console.log('✅ Модель мотоцикла загружена!');
                     applyBikeModelsToPlayers();
                 },
-                (progress) => {
-                    const percent = Math.round((progress.loaded / progress.total) * 100);
-                    if (percent % 20 === 0) {
-                        console.log(`⏳ Загрузка модели: ${percent}%`);
-                    }
-                },
+                undefined,
                 (error) => {
                     console.error('❌ Ошибка загрузки модели:', error);
                     bikeModelLoading = false;
@@ -136,20 +132,16 @@ function applyBikeModelsToPlayers() {
         
         const model = bikeModel.clone();
         
-        // ============================================
-        // 1️⃣ МАСШТАБ (уменьшен с 2.5 до 1.8)
-        // ============================================
+        // Масштаб
         const scale = RENDER_CONFIG.bikeScale;
         model.scale.set(scale, scale, scale);
         
-        // ============================================
-        // 2️⃣ ПОВОРОТ МОДЕЛИ НА 90° ВПРАВО (один раз)
-        // ============================================
-        model.rotation.y = Math.PI / 2;  // Поворот на 90 градусов
+        // 🔥 ПОВОРОТ МОДЕЛИ (исправлено!)
+        // Поворачиваем модель так, чтобы она смотрела ВПЕРЁД по оси Z
+        // Это стандартная ориентация для TRON байков
+        model.rotation.y = 0; // Сбрасываем лишние повороты
         
-        // ============================================
-        // 3️⃣ ЦВЕТА ДЛЯ КАЖДОГО ИГРОКА
-        // ============================================
+        // Цвета для каждого игрока
         const color = index === 0 ? RENDER_CONFIG.colors.blue : RENDER_CONFIG.colors.orange;
         const emissiveColor = index === 0 ? RENDER_CONFIG.colors.blueGlow : RENDER_CONFIG.colors.orangeGlow;
         
@@ -238,32 +230,40 @@ function createFallbackBikes() {
 }
 
 // ============================================
-// 8. ПОВОРОТ БАЙКА В НАПРАВЛЕНИИ ДВИЖЕНИЯ
+// 8. ПОВОРОТ БАЙКА В НАПРАВЛЕНИИ ДВИЖЕНИЯ (ИСПРАВЛЕНО!)
 // ============================================
 function updateBikeRotation(player) {
     if (!player || !player.mesh) return;
     
-    // Учитываем базовый поворот модели (Math.PI / 2)
-    const baseRotation = Math.PI / 2;
-    
-    if (player.dirX === 1) player.mesh.rotation.y = baseRotation + Math.PI / 2;
-    else if (player.dirX === -1) player.mesh.rotation.y = baseRotation - Math.PI / 2;
-    else if (player.dirY === 1) player.mesh.rotation.y = baseRotation + 0;
-    else if (player.dirY === -1) player.mesh.rotation.y = baseRotation + Math.PI;
+    // Базовая ориентация: модель смотрит вдоль оси Z
+    // Поворачиваем в зависимости от направления движения
+    if (player.dirX === 1) {
+        // Движение вправо (по оси X)
+        player.mesh.rotation.y = Math.PI / 2;
+    } else if (player.dirX === -1) {
+        // Движение влево (по оси -X)
+        player.mesh.rotation.y = -Math.PI / 2;
+    } else if (player.dirY === 1) {
+        // Движение вниз (по оси Z)
+        player.mesh.rotation.y = Math.PI;
+    } else if (player.dirY === -1) {
+        // Движение вверх (по оси -Z)
+        player.mesh.rotation.y = 0;
+    }
 }
 
 // ============================================
-// 9. ОСВЕЩЕНИЕ
+// 9. ОСВЕЩЕНИЕ (ОПТИМИЗИРОВАННОЕ)
 // ============================================
 function setupLighting() {
     const ambient = new THREE.AmbientLight(0x4466aa, 0.8);
     scene.add(ambient);
 
-    const dirLight = new THREE.DirectionalLight(0xffeedd, 1.2);
+    const dirLight = new THREE.DirectionalLight(0xffeedd, 1.0);
     dirLight.position.set(30, 50, 30);
     dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 2048;
-    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
     dirLight.shadow.camera.near = 0.1;
     dirLight.shadow.camera.far = 150;
     dirLight.shadow.camera.left = -50;
@@ -272,11 +272,11 @@ function setupLighting() {
     dirLight.shadow.camera.bottom = -50;
     scene.add(dirLight);
 
-    const blueLight = new THREE.DirectionalLight(0x00ccff, 0.8);
+    const blueLight = new THREE.DirectionalLight(0x00ccff, 0.6);
     blueLight.position.set(-40, 30, 0);
     scene.add(blueLight);
 
-    const orangeLight = new THREE.DirectionalLight(0xff6600, 0.8);
+    const orangeLight = new THREE.DirectionalLight(0xff6600, 0.6);
     orangeLight.position.set(40, 30, 0);
     scene.add(orangeLight);
 }
@@ -315,9 +315,10 @@ const Utils = {
 };
 
 // ============================================
-// 11. ЗАДНИЙ ФОН
+// 11. ЗАДНИЙ ФОН (ОПТИМИЗИРОВАННЫЙ)
 // ============================================
 function setupBackground() {
+    // Загрузка текстуры фона
     const textureLoader = new THREE.TextureLoader();
     textureLoader.load(
         'assets/images/bg.png',
@@ -332,8 +333,9 @@ function setupBackground() {
         }
     );
 
+    // Звёзды (уменьшено количество для производительности)
     const starsGeometry = new THREE.BufferGeometry();
-    const starsCount = 2000;
+    const starsCount = 1500;
     const positions = new Float32Array(starsCount * 3);
     const colors = new Float32Array(starsCount * 3);
 
@@ -373,7 +375,7 @@ function setupBackground() {
 setupBackground();
 
 // ============================================
-// 12. ПОЛ АРЕНЫ
+// 12. ПОЛ АРЕНЫ (ОПТИМИЗИРОВАННЫЙ)
 // ============================================
 function createFloor() {
     const shape = createRoundedRectShape(ARENA_PLAY_W, ARENA_PLAY_H, ARENA_RADIUS);
@@ -386,8 +388,8 @@ function createFloor() {
         roughness: 0.2,
         metalness: 0.9,
         side: THREE.DoubleSide,
-        envMapIntensity: 1.2,
-        clearcoat: 0.2,
+        envMapIntensity: 0.5,
+        clearcoat: 0.1,
         clearcoatRoughness: 0.3
     });
 
@@ -402,7 +404,7 @@ function createFloor() {
 const floor = createFloor();
 
 // ============================================
-// 13. СЕТКА
+// 13. СЕТКА (ОПТИМИЗИРОВАННАЯ)
 // ============================================
 function createGrid() {
     const gridGroup = new THREE.Group();
@@ -469,9 +471,9 @@ function createFenceWalls() {
         roughness: 0.1,
         metalness: 0.95,
         side: THREE.DoubleSide,
-        clearcoat: 0.8,
+        clearcoat: 0.5,
         clearcoatRoughness: 0.1,
-        envMapIntensity: 1.0
+        envMapIntensity: 0.5
     });
 
     const orangeMat = new THREE.MeshPhysicalMaterial({
@@ -483,9 +485,9 @@ function createFenceWalls() {
         roughness: 0.1,
         metalness: 0.95,
         side: THREE.DoubleSide,
-        clearcoat: 0.8,
+        clearcoat: 0.5,
         clearcoatRoughness: 0.1,
-        envMapIntensity: 1.0
+        envMapIntensity: 0.5
     });
 
     const topWallLeft = new THREE.Mesh(
@@ -597,7 +599,7 @@ function createFenceWalls() {
 const fenceWalls = createFenceWalls();
 
 // ============================================
-// 15. УГЛОВЫЕ СТОЛБЫ
+// 15. УГЛОВЫЕ СТОЛБЫ (ОПТИМИЗИРОВАННЫЕ)
 // ============================================
 function createCornerPillars() {
     const corners = [
@@ -619,11 +621,11 @@ function createCornerPillars() {
             roughness: 0.05,
             emissive: color,
             emissiveIntensity: 0.5,
-            clearcoat: 0.8,
+            clearcoat: 0.5,
             clearcoatRoughness: 0.1
         });
         const pillar = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.6, 0.6, RENDER_CONFIG.fenceHeight, 16),
+            new THREE.CylinderGeometry(0.6, 0.6, RENDER_CONFIG.fenceHeight, 12),
             pillarMat
         );
         pillar.position.y = RENDER_CONFIG.fenceHeight / 2;
@@ -633,14 +635,14 @@ function createCornerPillars() {
         const ringMat = new THREE.MeshPhysicalMaterial({
             color: color,
             emissive: color,
-            emissiveIntensity: 2.5,
+            emissiveIntensity: 2.0,
             transparent: true,
             opacity: 0.9,
             metalness: 0.9,
             roughness: 0.1
         });
         const ring = new THREE.Mesh(
-            new THREE.TorusGeometry(0.8, 0.08, 8, 24),
+            new THREE.TorusGeometry(0.8, 0.06, 6, 16),
             ringMat
         );
         ring.position.y = RENDER_CONFIG.fenceHeight - 0.2;
@@ -650,14 +652,14 @@ function createCornerPillars() {
         const ringBottomMat = new THREE.MeshPhysicalMaterial({
             color: RENDER_CONFIG.colors.pink,
             emissive: RENDER_CONFIG.colors.pink,
-            emissiveIntensity: 2.0,
+            emissiveIntensity: 1.5,
             transparent: true,
             opacity: 0.7,
             metalness: 0.9,
             roughness: 0.1
         });
         const ringBottom = new THREE.Mesh(
-            new THREE.TorusGeometry(0.8, 0.08, 8, 24),
+            new THREE.TorusGeometry(0.8, 0.06, 6, 16),
             ringBottomMat
         );
         ringBottom.position.y = 0.2;
@@ -667,7 +669,7 @@ function createCornerPillars() {
         const sphereMat = new THREE.MeshPhysicalMaterial({
             color: color,
             emissive: color,
-            emissiveIntensity: 4.0,
+            emissiveIntensity: 3.0,
             transparent: true,
             opacity: 0.9,
             metalness: 0.0,
@@ -675,7 +677,7 @@ function createCornerPillars() {
             clearcoat: 1
         });
         const sphere = new THREE.Mesh(
-            new THREE.SphereGeometry(0.4, 16, 16),
+            new THREE.SphereGeometry(0.4, 12, 12),
             sphereMat
         );
         sphere.position.y = RENDER_CONFIG.fenceHeight + 0.3;
@@ -702,24 +704,31 @@ if (typeof players !== 'undefined' && Array.isArray(players) && players.length >
 }
 
 // ============================================
-// 17. АНИМАЦИЯ
+// 17. АНИМАЦИЯ (60 FPS)
 // ============================================
 let time = 0;
+let lastTime = 0;
+const targetFPS = 60;
+const frameInterval = 1000 / targetFPS;
 
+// Группируем обновления для оптимизации
 function animateNeon() {
     time += 0.008;
 
-    const neonEdges = window._neonEdges || {};
-    if (neonEdges.leftLine) {
-        neonEdges.leftLine.material.opacity = 0.7 + Math.sin(time * 1.5) * 0.3;
-    }
-    if (neonEdges.rightLine) {
-        neonEdges.rightLine.material.opacity = 0.7 + Math.sin(time * 1.7 + 0.5) * 0.3;
-    }
-    if (neonEdges.bottomLine) {
-        neonEdges.bottomLine.material.opacity = 0.4 + Math.sin(time * 2 + 1) * 0.2;
+    // Анимация кантов
+    if (neonEdges) {
+        if (neonEdges.leftLine) {
+            neonEdges.leftLine.material.opacity = 0.7 + Math.sin(time * 1.5) * 0.3;
+        }
+        if (neonEdges.rightLine) {
+            neonEdges.rightLine.material.opacity = 0.7 + Math.sin(time * 1.7 + 0.5) * 0.3;
+        }
+        if (neonEdges.bottomLine) {
+            neonEdges.bottomLine.material.opacity = 0.4 + Math.sin(time * 2 + 1) * 0.2;
+        }
     }
 
+    // Анимация сетки
     if (gridGroup) {
         gridGroup.children.forEach(child => {
             if (child.material && child.material.opacity !== undefined) {
@@ -733,29 +742,43 @@ function animateNeon() {
         });
     }
 
+    // Анимация столбов (оптимизировано)
     if (pillars) {
         pillars.forEach((pillar, index) => {
             pillar.children.forEach(child => {
                 if (child.isMesh && child.geometry.type === 'SphereGeometry') {
-                    child.position.y = RENDER_CONFIG.fenceHeight + 0.3 + Math.sin(time * 2 + index) * 0.1;
+                    child.position.y = RENDER_CONFIG.fenceHeight + 0.3 + Math.sin(time * 2 + index) * 0.08;
                     if (child.material) {
-                        child.material.emissiveIntensity = 3 + Math.sin(time * 2.5 + index) * 1;
+                        child.material.emissiveIntensity = 2.5 + Math.sin(time * 2.5 + index) * 0.8;
                     }
                 }
                 if (child.isMesh && child.geometry.type === 'TorusGeometry') {
-                    child.rotation.z = Math.sin(time * 0.5 + index) * 0.1;
+                    child.rotation.z = Math.sin(time * 0.5 + index) * 0.08;
                 }
             });
         });
     }
 }
 
-function animate() {
+// Главный цикл с фиксацией FPS
+function animate(currentTime) {
     requestAnimationFrame(animate);
+    
+    // Контроль FPS
+    const delta = currentTime - lastTime;
+    if (delta < frameInterval) return;
+    
+    lastTime = currentTime - (delta % frameInterval);
+    
+    // Обновляем анимацию
     animateNeon();
+    
+    // Рендерим
     renderer.render(scene, camera);
 }
-animate();
+
+// Запускаем анимацию
+animate(0);
 
 // ============================================
 // 18. АДАПТАЦИЯ К РАЗМЕРУ ОКНА
@@ -798,5 +821,6 @@ window.Render = {
 console.log('🏟️ Render.js загружен');
 console.log('📐 Квадратная арена:', ARENA_W, 'x', ARENA_H);
 console.log('🔵 СИНИЙ байк (игрок 1) | 🟠 ОРАНЖЕВЫЙ байк (игрок 2)');
-console.log(`🏍️ Модель мотоцикла (масштаб ${RENDER_CONFIG.bikeScale}x, поворот 90°)`);
+console.log(`🏍️ Модель мотоцикла (масштаб ${RENDER_CONFIG.bikeScale}x)`);
+console.log('⚡ 60 FPS режим активирован');
 console.log('🌐 scene, camera, renderer доступны глобально');
