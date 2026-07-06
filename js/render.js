@@ -1,6 +1,6 @@
 // ============================================
 // render.js - 3D Арена для TRON игры
-// Версия: 8.3 (Оптимизированный, 60 FPS)
+// Версия: 8.4 (ИСПРАВЛЕН ПОВОРОТ БАЙКА)
 // ============================================
 
 // ============================================
@@ -51,7 +51,7 @@ camera.position.set(RENDER_CONFIG.cameraPos.x, RENDER_CONFIG.cameraPos.y, RENDER
 camera.lookAt(0, 0, 0);
 
 // ============================================
-// 4. РЕНДЕР (ОПТИМИЗИРОВАННЫЙ)
+// 4. РЕНДЕР
 // ============================================
 const renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -64,7 +64,6 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.5;
-renderer.setAnimationLoop(null); // Отключаем встроенный цикл
 document.body.appendChild(renderer.domElement);
 
 // ============================================
@@ -136,10 +135,16 @@ function applyBikeModelsToPlayers() {
         const scale = RENDER_CONFIG.bikeScale;
         model.scale.set(scale, scale, scale);
         
-        // 🔥 ПОВОРОТ МОДЕЛИ (исправлено!)
-        // Поворачиваем модель так, чтобы она смотрела ВПЕРЁД по оси Z
-        // Это стандартная ориентация для TRON байков
-        model.rotation.y = 0; // Сбрасываем лишние повороты
+        // 🔥 ФИКС: Поворачиваем модель так, чтобы она смотрела ВПЕРЁД
+        // Три варианта, попробуй каждый:
+        // Вариант 1: модель уже смотрит вперёд (поворот 0)
+        // Вариант 2: модель смотрит вбок (поворот Math.PI/2)
+        // Вариант 3: модель смотрит назад (поворот Math.PI)
+        
+        // ПРОБУЙ РАЗНЫЕ ЗНАЧЕНИЯ ЗДЕСЬ!
+        // Сейчас стоит 0 - модель смотрит вперёд
+        // Если байк едет боком - попробуй Math.PI/2
+        model.rotation.y = 0;  // ← ИЗМЕНЯЙ ЗДЕСЬ
         
         // Цвета для каждого игрока
         const color = index === 0 ? RENDER_CONFIG.colors.blue : RENDER_CONFIG.colors.orange;
@@ -230,30 +235,32 @@ function createFallbackBikes() {
 }
 
 // ============================================
-// 8. ПОВОРОТ БАЙКА В НАПРАВЛЕНИИ ДВИЖЕНИЯ (ИСПРАВЛЕНО!)
+// 8. ПОВОРОТ БАЙКА В НАПРАВЛЕНИИ ДВИЖЕНИЯ (ОБНОВЛЁН)
 // ============================================
 function updateBikeRotation(player) {
     if (!player || !player.mesh) return;
     
-    // Базовая ориентация: модель смотрит вдоль оси Z
+    // БАЗОВЫЙ ПОВОРОТ МОДЕЛИ (должен совпадать с model.rotation.y в applyBikeModelsToPlayers)
+    const BASE_ROTATION = 0;  // ← ДОЛЖНО СОВПАДАТЬ С model.rotation.y
+    
     // Поворачиваем в зависимости от направления движения
     if (player.dirX === 1) {
         // Движение вправо (по оси X)
-        player.mesh.rotation.y = Math.PI / 2;
+        player.mesh.rotation.y = BASE_ROTATION + Math.PI / 2;
     } else if (player.dirX === -1) {
         // Движение влево (по оси -X)
-        player.mesh.rotation.y = -Math.PI / 2;
+        player.mesh.rotation.y = BASE_ROTATION - Math.PI / 2;
     } else if (player.dirY === 1) {
         // Движение вниз (по оси Z)
-        player.mesh.rotation.y = Math.PI;
+        player.mesh.rotation.y = BASE_ROTATION + Math.PI;
     } else if (player.dirY === -1) {
         // Движение вверх (по оси -Z)
-        player.mesh.rotation.y = 0;
+        player.mesh.rotation.y = BASE_ROTATION + 0;
     }
 }
 
 // ============================================
-// 9. ОСВЕЩЕНИЕ (ОПТИМИЗИРОВАННОЕ)
+// 9. ОСВЕЩЕНИЕ
 // ============================================
 function setupLighting() {
     const ambient = new THREE.AmbientLight(0x4466aa, 0.8);
@@ -315,10 +322,9 @@ const Utils = {
 };
 
 // ============================================
-// 11. ЗАДНИЙ ФОН (ОПТИМИЗИРОВАННЫЙ)
+// 11. ЗАДНИЙ ФОН
 // ============================================
 function setupBackground() {
-    // Загрузка текстуры фона
     const textureLoader = new THREE.TextureLoader();
     textureLoader.load(
         'assets/images/bg.png',
@@ -333,7 +339,6 @@ function setupBackground() {
         }
     );
 
-    // Звёзды (уменьшено количество для производительности)
     const starsGeometry = new THREE.BufferGeometry();
     const starsCount = 1500;
     const positions = new Float32Array(starsCount * 3);
@@ -375,7 +380,7 @@ function setupBackground() {
 setupBackground();
 
 // ============================================
-// 12. ПОЛ АРЕНЫ (ОПТИМИЗИРОВАННЫЙ)
+// 12. ПОЛ АРЕНЫ
 // ============================================
 function createFloor() {
     const shape = createRoundedRectShape(ARENA_PLAY_W, ARENA_PLAY_H, ARENA_RADIUS);
@@ -404,7 +409,7 @@ function createFloor() {
 const floor = createFloor();
 
 // ============================================
-// 13. СЕТКА (ОПТИМИЗИРОВАННАЯ)
+// 13. СЕТКА
 // ============================================
 function createGrid() {
     const gridGroup = new THREE.Group();
@@ -599,7 +604,7 @@ function createFenceWalls() {
 const fenceWalls = createFenceWalls();
 
 // ============================================
-// 15. УГЛОВЫЕ СТОЛБЫ (ОПТИМИЗИРОВАННЫЕ)
+// 15. УГЛОВЫЕ СТОЛБЫ
 // ============================================
 function createCornerPillars() {
     const corners = [
@@ -711,11 +716,9 @@ let lastTime = 0;
 const targetFPS = 60;
 const frameInterval = 1000 / targetFPS;
 
-// Группируем обновления для оптимизации
 function animateNeon() {
     time += 0.008;
 
-    // Анимация кантов
     if (neonEdges) {
         if (neonEdges.leftLine) {
             neonEdges.leftLine.material.opacity = 0.7 + Math.sin(time * 1.5) * 0.3;
@@ -728,7 +731,6 @@ function animateNeon() {
         }
     }
 
-    // Анимация сетки
     if (gridGroup) {
         gridGroup.children.forEach(child => {
             if (child.material && child.material.opacity !== undefined) {
@@ -742,7 +744,6 @@ function animateNeon() {
         });
     }
 
-    // Анимация столбов (оптимизировано)
     if (pillars) {
         pillars.forEach((pillar, index) => {
             pillar.children.forEach(child => {
@@ -760,24 +761,17 @@ function animateNeon() {
     }
 }
 
-// Главный цикл с фиксацией FPS
 function animate(currentTime) {
     requestAnimationFrame(animate);
     
-    // Контроль FPS
     const delta = currentTime - lastTime;
     if (delta < frameInterval) return;
     
     lastTime = currentTime - (delta % frameInterval);
-    
-    // Обновляем анимацию
     animateNeon();
-    
-    // Рендерим
     renderer.render(scene, camera);
 }
 
-// Запускаем анимацию
 animate(0);
 
 // ============================================
